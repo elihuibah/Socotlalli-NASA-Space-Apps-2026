@@ -25,11 +25,16 @@ from grid import to_grid
 #   range:   lo que el disco puede leer de verdad; values 0..1 se reparten en este rango
 #   transparent_below: el dato no se pinta abajo del rango; esos píxeles cuentan como el
 #            mínimo del rango (no como "sin dato")
+#   value:   'color' (por defecto) = valor leído de la barra;
+#            'area' = fracción de la celda donde la visualización pinta el dato (0..1)
+#   measure: qué significa el valor, en una frase (va al disc.json para Frontend y Audio)
 #   place:   cómo nombrar la zona en el texto ('ocean' o 'land')
+#   phrase:  plantillas (sobre, bajo) para la cantidad en el texto
 DISCS = {
     "sst": {
         "title": "Temperatura del mar",
         "units": "°C",
+        "measure": "Temperatura de la superficie del mar, promedio de la celda",
         "scale": (0.0, 32.0),
         "range": (0.0, 32.0),
         "text_threshold": 1.0,       # en °C: menos que esto se describe como "cerca de lo normal"
@@ -40,14 +45,19 @@ DISCS = {
     },
     "co2": {
         "title": "Dióxido de carbono",
-        "units": "ppm",
+        # La mitad de los píxeles pintados está en ~431 ppm, así que leer los ppm deja el disco
+        # casi plano. Se usa el área: qué parte de la celda tiene CO2 acumulado (>= ~430 ppm).
+        "units": "%",
+        "measure": "Porcentaje de la celda con CO2 cerca de la superficie de 430 ppm o más",
+        "value": "area",
         "scale": (380.0, 460.0),
         "extent": (238, 1681),       # marcas de 380 y 460 ppm medidas en colorbar.png
-        "range": (430.0, 460.0),     # abajo de ~430 ppm la barra es transparente o beige
-        "transparent_below": True,
-        "text_threshold": 2.0,       # en ppm: el error de lectura de la barra es de ~2 ppm
+        "range": (0.0, 100.0),       # % del área de la celda
+        "text_threshold": 10.0,      # en puntos de %: menos que esto es "cerca de lo normal"
         "place": "land",
-        "show_mean": False,          # el promedio incluiría las zonas sin pintar como 430
+        "show_mean": False,          # el promedio global de área no le dice nada al oyente
+        "phrase": ("CO2 alto en {v:.0f} % más de la celda que lo normal",
+                   "CO2 alto en {v:.0f} % menos de la celda que lo normal"),
         "credit": "NASA Scientific Visualization Studio, DYAMOND Global Carbon Dioxide for Science On "
                   "A Sphere (visualización: AJ Christensen, Greg Shirah, Helen-Nicole Kostis, Mark "
                   "SubbaRao; ciencia: Lesley Ott, Brad Weir, William Putman, Tomohiro Oda; modelo "
@@ -65,6 +75,9 @@ def read_frame(img: Image.Image, cb: Colorbar, cfg: dict) -> tuple[np.ndarray, n
         # NEAREST toma píxeles tal cual, sin mezclar el color del dato con el fondo
         img = img.resize(WORK_SIZE, Image.NEAREST)
     pos, ok = cb.values(img)
+    if cfg.get("value") == "area":
+        # cada píxel vale 1 si tiene el dato pintado; el promedio de la celda es la fracción
+        return ok.astype(float), np.ones_like(ok)
     s_lo, s_hi = cfg["scale"]
     r_lo, r_hi = cfg["range"]
     v = np.clip((s_lo + pos * (s_hi - s_lo) - r_lo) / (r_hi - r_lo), 0.0, 1.0)
@@ -118,13 +131,15 @@ def main() -> None:
             "values": [round(float(x), 3) for x in values[i]],
             "anomaly": [round(float(x), 3) for x in anom[i]],
             "text": describe.sentence(date, real[i], diff_real[i], mask, cfg["units"],
-                                      cfg["text_threshold"], cfg["place"], cfg.get("show_mean", True)),
+                                      cfg["text_threshold"], cfg["place"], cfg.get("show_mean", True),
+                                      cfg.get("phrase")),
         })
 
     disc = {
         "id": disc_id,
         "title": cfg["title"],
         "units": cfg["units"],
+        "measure": cfg["measure"],
         "range": list(cfg["range"]),
         "credit": cfg["credit"],
         "grid": {"cols": COLS, "rows": ROWS},
