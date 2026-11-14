@@ -1,0 +1,18 @@
+/* Animaciones de Tlalli. Cada capa del SVG tiene un id; aquí solo se mueven. */
+.tlalli-svg svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tlalli-svg #tlalli { animation: tlalli-flotar 5s ease-in-out infinite; }
+.tlalli-svg #ojo-izquierdo, .tlalli-svg #ojo-derecho {
+  transform-box: fill-box; transform-origin: center; animation: tlalli-parpadeo 5.5s infinite;
+}
+.tlalli-svg #nubes { animation: tlalli-nubes 9s ease-in-out infinite alternate; }
+.tlalli-svg #brillo { animation: tlalli-brillo 5s ease-in-out infinite; }
+/* Estado "hablando" o "escuchando": agrega la clase desde React */
+.tlalli-svg.is-listening #tlalli { animation-duration: 1.2s; }
+
+@keyframes tlalli-flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes tlalli-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes tlalli-nubes { from { transform: translateX(-7px); } to { transform: translateX(7px); } }
+@keyframes tlalli-brillo { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+
+@media (prefers-reduced-motion: reduce) { .tlalli-svg * { animation: none !important; } }
+html[data-motion='reduce'] .tlalli-svg * { animation: none !important; }

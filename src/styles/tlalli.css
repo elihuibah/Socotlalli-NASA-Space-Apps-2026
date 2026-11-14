@@ -1,0 +1,42 @@
+/* Animaciones de Tlalli. Cada capa de tlalli.svg tiene un id; aquí solo se mueven. */
+.tlalli-svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.tlalli-svg #tlalli {
+  animation: tlalli-flotar 5s ease-in-out infinite;
+}
+.tlalli-svg #ojo-izquierdo,
+.tlalli-svg #ojo-derecho {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tlalli-parpadeo 5.5s infinite;
+}
+.tlalli-svg #nubes {
+  animation: tlalli-nubes 9s ease-in-out infinite alternate;
+}
+/* Cuando hay música, Tlalli se mece al ritmo */
+.tlalli-svg.is-listening #tlalli {
+  animation: tlalli-bailar 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes tlalli-flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+@keyframes tlalli-bailar {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-7px) rotate(3deg); }
+}
+@keyframes tlalli-parpadeo {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+@keyframes tlalli-nubes {
+  from { transform: translateX(-7px); }
+  to { transform: translateX(7px); }
+}
