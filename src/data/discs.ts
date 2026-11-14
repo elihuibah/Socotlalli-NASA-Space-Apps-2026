@@ -66,7 +66,7 @@ export const DISCS: Disc[] = [
     ink: 'clara',
     howItSounds:
       'Cuando el agua se calienta, el piano sube y brilla. Si el mar se aleja de lo normal, la armonía se tensa.',
-    listen: 'Así suenan mis mares. Si el piano sube, el agua se está calentando.',
+    listen: 'Mis mares. Si el piano sube, el agua se calienta.',
     frames: mockFrames(11, 1),
   },
   {
@@ -82,7 +82,7 @@ export const DISCS: Disc[] = [
     ink: 'oscura',
     howItSounds:
       'Con menos hielo quedan menos notas, más agudas y solas. La tensión crece cuando el hielo cae bajo lo normal.',
-    listen: 'Este es mi hielo. Fíjate cuando las notas se quedan solas: ahí hay menos.',
+    listen: 'Mi hielo. Cuando quedan pocas notas, hay menos.',
     frames: mockFrames(29, -1),
   },
   {
@@ -98,7 +98,7 @@ export const DISCS: Disc[] = [
     ink: 'oscura',
     howItSounds:
       'Entre más verde, la guitarra toca más notas y más agudas. La sequía se oye como tensión.',
-    listen: 'Mis bosques. Entre más notas toca la guitarra, más verde estoy.',
+    listen: 'Mis bosques. Más notas, más verde.',
     frames: mockFrames(47, 0.6),
   },
   {
@@ -114,7 +114,7 @@ export const DISCS: Disc[] = [
     ink: 'clara',
     howItSounds:
       'Con más dióxido de carbono, el órgano baja y sostiene las notas, como una respiración pesada.',
-    listen: 'Así respiro. Cuando el órgano baja y pesa, hay más dióxido de carbono en mi aire.',
+    listen: 'Mi aire. Si el órgano baja y pesa, hay más CO₂.',
     frames: mockFrames(61, 1),
   },
 ]

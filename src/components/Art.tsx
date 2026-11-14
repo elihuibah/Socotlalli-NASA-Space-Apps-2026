@@ -1,4 +1,7 @@
-// Piezas de fieltro dibujadas en SVG: portadas, disco, ventana e íconos.
+// FUENTE VECTORIAL de las piezas de fieltro: portadas, disco, ventana y tocadiscos.
+// La página no dibuja estos SVG en vivo: se "hornean" una vez con el filtro #fieltro
+// y se guardan como imágenes en src/assets/fieltro (ver components/Felt.tsx).
+// Si cambian un dibujo aquí, hay que volver a hornear su imagen.
 import type { DiscId } from '../data/discs'
 
 const stitch = {
@@ -137,3 +140,77 @@ export const IconPause = () => (
     <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" />
   </svg>
 )
+
+/** Filtro de fieltro: fibras, borde afelpado y volumen. Se usa en CSS con filter: url(#fieltro). */
+export function FeltDefs() {
+  const gris = '.33 .33 .33 0 0  .33 .33 .33 0 0  .33 .33 .33 0 0  0 0 0 0 1'
+  return (
+    <svg className="defs-fieltro" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="fieltro" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="ruido" />
+          {/* borde afelpado: el contorno se deshilacha un poco */}
+          <feDisplacementMap in="SourceGraphic" in2="ruido" scale="4" xChannelSelector="R" yChannelSelector="G" result="pieza" />
+          {/* fibras: ruido gris que aclara y oscurece la tela */}
+          <feColorMatrix in="ruido" type="matrix" values={gris} result="gris" />
+          <feComponentTransfer in="gris" result="fibras">
+            <feFuncR type="linear" slope="2.4" intercept="-0.7" />
+            <feFuncG type="linear" slope="2.4" intercept="-0.7" />
+            <feFuncB type="linear" slope="2.4" intercept="-0.7" />
+          </feComponentTransfer>
+          <feBlend in="fibras" in2="pieza" mode="soft-light" result="tela" />
+          {/* volumen: la pieza se ilumina como un recorte grueso y mullido */}
+          <feGaussianBlur in="pieza" stdDeviation="2.4" result="suave" />
+          <feDiffuseLighting in="suave" surfaceScale="5" diffuseConstant="1.27" lightingColor="#ffffff" result="luz">
+            <feDistantLight azimuth="225" elevation="52" />
+          </feDiffuseLighting>
+          <feBlend in="luz" in2="tela" mode="multiply" result="iluminada" />
+          <feComposite in="iluminada" in2="pieza" operator="in" />
+        </filter>
+      </defs>
+    </svg>
+  )
+}
+
+/** Caja del tocadiscos vista de frente (fuente para hornear). */
+export function TurntableBoxArt() {
+  return (
+    <svg className="tt-caja" viewBox="0 0 320 250" aria-hidden="true" focusable="false">
+        {/* patas */}
+        <rect x="30" y="232" width="26" height="12" rx="4" fill="#2E221C" />
+        <rect x="264" y="232" width="26" height="12" rx="4" fill="#2E221C" />
+        {/* tapa superior, en perspectiva */}
+        <path d="M36 92 H284 L312 142 H8Z" fill="#3A2C26" />
+        <ellipse cx="140" cy="113" rx="112" ry="26" fill="#241A16" />
+        {/* frente de la caja */}
+        <rect x="8" y="138" width="304" height="98" rx="12" fill="#A0603F" />
+        <rect x="15" y="145" width="290" height="84" rx="8" fill="none" stroke="#F1F1EC" strokeOpacity=".55" strokeWidth="2" strokeDasharray="7 6" strokeLinecap="round" />
+        {/* bocina tejida */}
+        <rect x="28" y="156" width="164" height="62" rx="9" fill="#C99B6B" />
+        <g fill="#7A4B32">
+          {Array.from({ length: 4 }, (_, r) =>
+            Array.from({ length: 11 }, (_, c) => <circle key={`${r}-${c}`} cx={40 + c * 14 + (r % 2) * 7} cy={166 + r * 14} r="3.2" />),
+          )}
+        </g>
+        {/* perilla y foco */}
+        <circle cx="212" cy="170" r="4.5" fill="#F4E2A4" />
+        <circle cx="252" cy="188" r="21" fill="#2E221C" />
+        <circle cx="252" cy="188" r="13" fill="none" stroke="#F1F1EC" strokeOpacity=".5" strokeWidth="1.8" strokeDasharray="4 4" strokeLinecap="round" />
+        <path d="M252 172 v9" stroke="#F4E2A4" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+  )
+}
+
+/** Brazo del tocadiscos en posición de tocar (fuente para hornear). */
+export function TurntableArmArt() {
+  return (
+    <svg className="tt-brazo-capa" viewBox="0 0 320 250" aria-hidden="true" focusable="false">
+        <g>
+          <path d="M276 102 L204 116" stroke="#D9CDBD" strokeWidth="7" strokeLinecap="round" />
+          <rect x="190" y="108" width="24" height="15" rx="4" fill="#C9826B" transform="rotate(-11 202 115)" />
+        </g>
+        <circle cx="276" cy="102" r="13" fill="#8A6644" />
+        <circle cx="276" cy="102" r="5" fill="#2E221C" />
+      </svg>
+  )
+}

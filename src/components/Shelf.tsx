@@ -1,6 +1,6 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
 import type { Disc, DiscId } from '../data/discs'
-import { CoverArt, RecordArt } from './Art'
+import { CoverImg, RecordImg } from './Felt'
 
 interface Props {
   discs: Disc[]
@@ -15,7 +15,7 @@ interface Props {
   onDragCancel: () => void
 }
 
-/** Flechas recorren la repisa; Enter o Espacio eligen el vinilo. */
+/** Flechas recorren los vinilos; Enter o Espacio eligen el vinilo. */
 function roveFocus(e: KeyboardEvent<HTMLDivElement>) {
   if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
   const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button.funda'))
@@ -30,8 +30,7 @@ function roveFocus(e: KeyboardEvent<HTMLDivElement>) {
 export function Shelf(props: Props) {
   const { discs, selectedId, currentId, draggingId } = props
   return (
-    <div className="repisa">
-      <div className="repisa-fundas" role="group" aria-label="Repisa de vinilos" onKeyDown={roveFocus}>
+      <div className="fundas" role="group" aria-label="Vinilos" onKeyDown={roveFocus}>
         {discs.map((d) => {
           const playing = d.id === currentId
           const selected = d.id === selectedId
@@ -55,10 +54,10 @@ export function Shelf(props: Props) {
               onPointerCancel={props.onDragCancel}
             >
               <span className="funda-disco">
-                <RecordArt color={d.color} />
+                <RecordImg id={d.id} />
               </span>
               <span className="funda-cara">
-                <CoverArt id={d.id} />
+                <CoverImg id={d.id} />
                 <span className={`funda-texto is-${d.ink}`}>
                   <span className="funda-op">Op. {d.opus}</span>
                   <span className="funda-titulo">{d.title}</span>
@@ -69,8 +68,6 @@ export function Shelf(props: Props) {
           )
         })}
       </div>
-      <div className="tabla" aria-hidden="true" />
-    </div>
   )
 }
 
@@ -86,7 +83,7 @@ export function DiscInfo(props: {
   if (!disc) {
     return (
       <div className="ficha">
-        <p className="eyebrow">La repisa</p>
+        <p className="eyebrow">Los vinilos</p>
         <h2>Cuatro vinilos, cuatro partes de la Tierra</h2>
         <p className="ficha-como">Haz clic en una funda para conocerla, o arrástrala directo al tocadiscos.</p>
       </div>
@@ -101,11 +98,11 @@ export function DiscInfo(props: {
       <p className="ficha-como">{disc.howItSounds}</p>
       <div className="ficha-pie">
         {isCurrent ? (
-          <button type="button" className="btn-fieltro cosido" onClick={props.onToggle}>
+          <button type="button" className="btn-fieltro fieltro cosido" onClick={props.onToggle}>
             {playing ? 'Pausar' : 'Seguir escuchando'}
           </button>
         ) : (
-          <button type="button" className="btn-fieltro cosido" onClick={() => props.onPlace(disc)}>
+          <button type="button" className="btn-fieltro fieltro cosido" onClick={() => props.onPlace(disc)}>
             Poner este disco
           </button>
         )}

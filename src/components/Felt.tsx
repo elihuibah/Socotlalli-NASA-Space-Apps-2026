@@ -1,0 +1,43 @@
+// Piezas de fieltro ya "horneadas": imágenes con la textura, el borde afelpado y el
+// volumen incluidos. Al ser imágenes, moverlas o girarlas no le cuesta nada al navegador.
+// La fuente vectorial de cada una está en components/Art.tsx y assets/tlalli.svg.
+import type { DiscId } from '../data/discs'
+import discoCo2 from '../assets/fieltro/disco-co2.webp'
+import discoIce from '../assets/fieltro/disco-ice.webp'
+import discoSst from '../assets/fieltro/disco-sst.webp'
+import discoVeg from '../assets/fieltro/disco-veg.webp'
+import fundaCo2 from '../assets/fieltro/funda-co2.webp'
+import fundaIce from '../assets/fieltro/funda-ice.webp'
+import fundaSst from '../assets/fieltro/funda-sst.webp'
+import fundaVeg from '../assets/fieltro/funda-veg.webp'
+import tlalliCuerpo from '../assets/fieltro/tlalli-cuerpo.webp'
+import tlalliOjos from '../assets/fieltro/tlalli-ojos.webp'
+import ttBrazo from '../assets/fieltro/tt-brazo.webp'
+import ttCaja from '../assets/fieltro/tt-caja.webp'
+import ventana from '../assets/fieltro/ventana.webp'
+
+const FUNDAS: Record<DiscId, string> = { sst: fundaSst, ice: fundaIce, veg: fundaVeg, co2: fundaCo2 }
+const DISCOS: Record<DiscId, string> = { sst: discoSst, ice: discoIce, veg: discoVeg, co2: discoCo2 }
+
+// Todas son decorativas: el nombre accesible lo da el botón o la región que las contiene.
+const img = { alt: '', draggable: false, decoding: 'async' } as const
+
+export const CoverImg = ({ id }: { id: DiscId }) => <img {...img} className="funda-arte" src={FUNDAS[id]} />
+export const RecordImg = ({ id, className }: { id: DiscId; className?: string }) => (
+  <img {...img} className={className} src={DISCOS[id]} />
+)
+export const WindowImg = () => <img {...img} className="ventana" src={ventana} />
+export const TurntableBoxImg = () => <img {...img} className="tt-caja" src={ttCaja} />
+export const TurntableArmImg = ({ down }: { down: boolean }) => (
+  <img {...img} className={`tt-brazo${down ? ' is-down' : ''}`} src={ttBrazo} />
+)
+
+/** Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear. */
+export function TlalliImg({ listening }: { listening: boolean }) {
+  return (
+    <div className={`tlalli-fig${listening ? ' is-listening' : ''}`} role="img" aria-label="Tlalli, la Tierra con ojos grandes">
+      <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
+      <img {...img} className="tlalli-ojos" src={tlalliOjos} />
+    </div>
+  )
+}

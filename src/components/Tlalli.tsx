@@ -1,19 +1,6 @@
-import svg from '../assets/tlalli.svg?raw'
-
 export interface Message {
   id: number
   text: string
-}
-
-/** Tlalli flotando. El SVG tiene capas con id (ojos, nubes, continentes) que se animan en tlalli.css. */
-export function TlalliArt({ listening }: { listening: boolean }) {
-  return (
-    <div
-      className={`tlalli-svg${listening ? ' is-listening' : ''}`}
-      // tlalli.svg es un archivo propio del proyecto, no contenido de usuarios.
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  )
 }
 
 /** Globos de texto: el más reciente entra con animación; el anterior queda atenuado arriba. */
@@ -31,19 +18,19 @@ export function Bubbles(props: {
   return (
     <div className="globos">
       {older && (
-        <p key={older.id} className="globo cosido is-old" aria-hidden="true">
+        <p key={older.id} className="globo fieltro cosido is-old" aria-hidden="true">
           {older.text}
         </p>
       )}
       <div aria-live="polite">
-        <p key={newest.id} className="globo cosido is-new">
+        <p key={newest.id} className="globo fieltro cosido is-new">
           <span className="globo-nombre">Tlalli</span>
           {newest.text}
         </p>
       </div>
       {canAdvance && (
         <div className="globo-acciones">
-          <button type="button" className="btn-fieltro cosido" onClick={onNext}>
+          <button type="button" className="btn-fieltro fieltro cosido" onClick={onNext}>
             {isLast ? 'Entendido' : 'Siguiente'}
           </button>
           {!isLast && (

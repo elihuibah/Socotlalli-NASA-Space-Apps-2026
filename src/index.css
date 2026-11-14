@@ -1,6 +1,6 @@
 /* Socotlalli · tokens y base
-   Dirección: "cabaña en órbita". Recortes de fieltro, sombras sólidas, costuras punteadas.
-   Una sola familia tipográfica: Urbanist. Sin gradientes de fondo. */
+   Dirección: "cabaña en órbita". Todo es fieltro: fibras, bordes afelpados, costuras y sombras suaves.
+   Una sola familia tipográfica: Urbanist. */
 :root {
   color-scheme: dark;
 
@@ -27,8 +27,11 @@
   --terracota: #c9826b;
   --coral: #e3a08a; /* solo para datos: tensión y extremos */
 
+  /* Mosaico de fibras de fieltro (imagen horneada; se mezcla con soft-light sobre cada color) */
+  --tela-mosaico: url('./assets/fieltro/mosaico.webp');
+
+  --header-h: 60px;
   --font: 'Urbanist Variable', 'Urbanist', sans-serif;
-  --sombra: 5px 6px 0 var(--nogal-oscuro);
   --gutter: max(16px, env(safe-area-inset-left, 0px));
   --ease: cubic-bezier(0.3, 0.7, 0.2, 1);
 }
@@ -36,6 +39,13 @@
 @media (min-width: 900px) {
   :root {
     --gutter: clamp(40px, 5vw, 80px);
+  }
+}
+
+/* Ventanas bajitas (laptops con zoom): todo un poco más compacto para que quepa sin desplazarse */
+@media (min-width: 900px) and (max-height: 700px) {
+  html {
+    font-size: 92%;
   }
 }
 

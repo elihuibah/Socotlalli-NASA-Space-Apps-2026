@@ -4,28 +4,31 @@ import { engine } from './audio/engine'
 import { DISCS, FRAME_MS } from './data/discs'
 import type { Disc, DiscId } from './data/discs'
 import { useSettings } from './hooks/useSettings'
-import { RecordArt, WindowArt } from './components/Art'
+import mosaico from './assets/fieltro/mosaico.webp'
+import { RecordImg, TlalliImg, WindowImg } from './components/Felt'
 import { NowPlaying, Turntable } from './components/Console'
 import { DiscInfo, Shelf } from './components/Shelf'
-import { Bubbles, TlalliArt } from './components/Tlalli'
+import { Bubbles } from './components/Tlalli'
 import type { Message } from './components/Tlalli'
 
 // ---- Lo que dice Tlalli ----------------------------------------------------
 const INTRO = [
-  'Hola, soy Tlalli. Así me llaman en náhuatl: tierra. Bienvenido a mi cabaña en órbita.',
-  'Los satélites de la NASA me observan todo el tiempo. Con lo que ven, hice música.',
-  'Cada vinilo de la repisa guarda una parte de mí: el mar, el hielo, los bosques y el aire. Haz clic en uno para conocerlo.',
-  'Cuando elijas, arrástralo al tocadiscos o pulsa «Poner este disco». Yo me encargo del resto.',
+  'Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.',
+  'Los satélites de la NASA me observan. Con lo que ven, hice música.',
+  'Cada vinilo guarda una parte de mí: mar, hielo, bosques y aire. Haz clic en uno.',
+  'Luego arrástralo al tocadiscos, o pulsa «Poner este disco».',
 ]
 const HOW_TO = [
-  'Primero, la altura: las notas agudas son valores altos y las graves, valores bajos. Escucha.',
-  'Segundo, la tensión: si la música suena incómoda, es que me alejé de lo normal.',
-  'Tercero, el lugar: con audífonos, el sonido viaja de oeste a este, de un oído al otro.',
+  'La altura: notas agudas, valores altos; notas graves, valores bajos.',
+  'La tensión: si suena incómodo, me alejé de lo normal.',
+  'El lugar: con audífonos, el sonido viaja de oeste a este.',
 ]
 
 type Guide = { kind: 'intro' | 'howto'; index: number } | null
 type Drag = { id: DiscId; x: number; y: number; over: boolean }
 type Flight = { disc: Disc; from: DOMRect; to: DOMRect }
+
+const VIGA = 'M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900'
 
 const discById = (id: DiscId | null) => DISCS.find((d) => d.id === id) ?? null
 
@@ -64,7 +67,7 @@ export default function App() {
     const i = guide.index + 1
     if (i >= lines.length) {
       setGuide(null)
-      say(guide.kind === 'intro' ? 'Elige un vinilo de la repisa cuando quieras.' : 'Eso es todo. Ahora pon un disco y compruébalo.')
+      say(guide.kind === 'intro' ? 'Elige un vinilo del buró cuando quieras.' : 'Eso es todo. Pon un disco y compruébalo.')
       return
     }
     setGuide({ ...guide, index: i })
@@ -73,7 +76,7 @@ export default function App() {
   }
   const skipGuide = () => {
     setGuide(null)
-    say('Está bien. Elige un vinilo de la repisa cuando quieras.')
+    say('Está bien. Elige un vinilo del buró cuando quieras.')
   }
   const startHowTo = () => {
     setGuide({ kind: 'howto', index: 0 })
@@ -126,14 +129,14 @@ export default function App() {
     if (!flight || !el) return
     const { from, to, disc } = flight
     const size = from.width
-    const targetX = to.left + to.width * (124 / 320) - (from.left + size / 2)
-    const targetY = to.top + to.height * (103 / 206) - (from.top + size / 2)
-    const scale = (to.width * (146 / 320)) / size
+    const targetX = to.left + to.width * (140 / 320) - (from.left + size / 2)
+    const targetY = to.top + to.height * (113 / 250) - (from.top + size / 2)
+    const scale = (to.width * (216 / 320)) / size
     const anim = el.animate(
       [
         { transform: 'translate(0, 0) scale(1) rotate(0deg)' },
-        { transform: `translate(${targetX * 0.5}px, ${Math.min(targetY, 0) * 0.5 - 70}px) scale(${(1 + scale) / 2}) rotate(160deg)`, offset: 0.55 },
-        { transform: `translate(${targetX}px, ${targetY}px) scale(${scale}) rotate(320deg)` },
+        { transform: `translate(${targetX * 0.5}px, ${targetY * 0.5 - 90}px) scale(${(1 + scale) / 2}) rotate(-200deg)`, offset: 0.55 },
+        { transform: `translate(${targetX}px, ${targetY}px) scale(${scale}, ${scale * 0.24}) rotate(0deg)` },
       ],
       { duration: 800, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'forwards' },
     )
@@ -143,7 +146,7 @@ export default function App() {
 
   const toggle = () => {
     if (!current) {
-      say('El tocadiscos está vacío. Elige un vinilo de la repisa.')
+      say('El tocadiscos está vacío. Elige un vinilo.')
       return
     }
     if (playing) {
@@ -161,7 +164,7 @@ export default function App() {
     engine.pause()
     setPlaying(false)
     setCurrentId(null)
-    say('Listo, lo guardé en la repisa. ¿Cuál sigue?')
+    say('Listo, lo guardé en su funda. ¿Cuál sigue?')
   }
 
   // Avance de fotogramas mientras suena.
@@ -199,7 +202,7 @@ export default function App() {
       if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return
       p.active = true
       setGuide(null)
-      say('Eso, llévalo al tocadiscos y suéltalo sobre el plato.')
+      say('Eso, suéltalo sobre el tocadiscos.')
     }
     setDrag({ id: p.id, x: e.clientX, y: e.clientY, over: isOverTurntable(e.clientX, e.clientY) })
   }
@@ -233,8 +236,17 @@ export default function App() {
     <div className={`cabana${drag ? ' is-dragging' : ''}`}>
       <div className="cabin" aria-hidden="true">
         <svg className="cabin-arco" viewBox="0 0 1440 900" preserveAspectRatio="none">
-          <path d="M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900" fill="none" stroke="#2E221C" strokeWidth="26" vectorEffect="non-scaling-stroke" />
-          <path d="M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900" fill="none" stroke="#F1F1EC" strokeOpacity=".28" strokeWidth="2" strokeDasharray="7 7" vectorEffect="non-scaling-stroke" />
+          <defs>
+            <pattern id="tela-viga" patternUnits="userSpaceOnUse" width="300" height="300">
+              <rect width="300" height="300" fill="#8A6644" />
+              <image href={mosaico} width="300" height="300" opacity=".22" />
+            </pattern>
+          </defs>
+          {/* viga de madera clara (pino): sombra, canto, tira de fieltro y puntadas sueltas */}
+          <path d={VIGA} fill="none" stroke="#140C08" strokeOpacity=".32" strokeWidth="36" vectorEffect="non-scaling-stroke" />
+          <path d={VIGA} fill="none" stroke="#6E5035" strokeWidth="26" vectorEffect="non-scaling-stroke" />
+          <path d={VIGA} fill="none" stroke="url(#tela-viga)" strokeWidth="22" vectorEffect="non-scaling-stroke" />
+          <path d={VIGA} fill="none" stroke="#F1F1EC" strokeOpacity=".55" strokeWidth="2" strokeDasharray="2 12" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         </svg>
         <div className="cabin-luces" />
         <div className="cabin-piso" />
@@ -252,7 +264,7 @@ export default function App() {
           </button>
         </nav>
         {a11yOpen && (
-          <div id="panel-a11y" className="a11y-panel cosido">
+          <div id="panel-a11y" className="a11y-panel fieltro cosido">
             <label>
               <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
               Reducir movimiento
@@ -261,14 +273,14 @@ export default function App() {
               <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
               Texto más grande
             </label>
-            <p>Todo funciona con teclado: Tab para moverte, flechas en la repisa y Enter para elegir.</p>
+            <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
           </div>
         )}
       </header>
 
       <main className="cab-main">
         <section className="lado-tlalli" aria-label="Tlalli">
-          <WindowArt />
+          <WindowImg />
           <Bubbles
             messages={messages}
             canAdvance={guide !== null}
@@ -277,23 +289,11 @@ export default function App() {
             onSkip={skipGuide}
           />
           <div className="tlalli-lugar">
-            <TlalliArt listening={playing} />
+            <TlalliImg listening={playing} />
           </div>
         </section>
 
         <section className="lado-mueble" aria-label="Vinilos y tocadiscos">
-          <Shelf
-            discs={DISCS}
-            selectedId={selectedId}
-            currentId={currentId}
-            draggingId={drag?.id ?? flight?.disc.id ?? null}
-            registerCover={registerCover}
-            onSelect={select}
-            onDragStart={onDragStart}
-            onDragMove={onDragMove}
-            onDragEnd={onDragEnd}
-            onDragCancel={onDragCancel}
-          />
           <DiscInfo
             disc={selected}
             isCurrent={selected !== null && selected.id === currentId}
@@ -301,8 +301,8 @@ export default function App() {
             onPlace={(d) => place(d, true)}
             onToggle={toggle}
           />
-          <div className="consola">
-            <div className="consola-encima">
+          <div className="buro">
+            <div className="buro-encima">
               <Turntable
                 disc={current}
                 playing={playing}
@@ -310,11 +310,30 @@ export default function App() {
                 register={registerTurntable}
                 onClick={toggle}
               />
-              <NowPlaying disc={current} playing={playing} frame={frame} onToggle={toggle} onEject={eject} />
+              <Shelf
+                discs={DISCS}
+                selectedId={selectedId}
+                currentId={currentId}
+                draggingId={drag?.id ?? flight?.disc.id ?? null}
+                registerCover={registerCover}
+                onSelect={select}
+                onDragStart={onDragStart}
+                onDragMove={onDragMove}
+                onDragEnd={onDragEnd}
+                onDragCancel={onDragCancel}
+              />
             </div>
-            <div className="consola-cuerpo cosido" aria-hidden="true">
-              <span className="perilla" />
-              <span className="perilla" />
+            <div className="buro-tapa" aria-hidden="true" />
+            <div className="buro-cuerpo">
+              <div className="cajon cosido">
+                <span className="perilla" aria-hidden="true" />
+                <NowPlaying disc={current} playing={playing} frame={frame} onToggle={toggle} onEject={eject} />
+                <span className="perilla" aria-hidden="true" />
+              </div>
+            </div>
+            <div className="buro-patas" aria-hidden="true">
+              <span />
+              <span />
             </div>
           </div>
         </section>
@@ -324,7 +343,7 @@ export default function App() {
 
       {drag && dragged && (
         <div className="volador" aria-hidden="true" style={{ transform: `translate(${drag.x}px, ${drag.y}px)` }}>
-          <RecordArt color={dragged.color} />
+          <RecordImg id={dragged.id} />
         </div>
       )}
       {flight && (
@@ -334,7 +353,7 @@ export default function App() {
           aria-hidden="true"
           style={{ left: flight.from.left, top: flight.from.top, width: flight.from.width, height: flight.from.height }}
         >
-          <RecordArt color={flight.disc.color} />
+          <RecordImg id={flight.disc.id} />
         </div>
       )}
     </div>

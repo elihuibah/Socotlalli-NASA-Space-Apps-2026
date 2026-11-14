@@ -1,27 +1,29 @@
-/* Animaciones de Tlalli. Cada capa de tlalli.svg tiene un id; aquí solo se mueven. */
-.tlalli-svg svg {
-  display: block;
+/* Tlalli: dos imágenes de fieltro (cuerpo y ojos). Solo se animan transformaciones,
+   que el navegador resuelve sin volver a dibujar nada. */
+.tlalli-fig {
+  position: relative;
   width: 100%;
-  height: auto;
-  overflow: visible;
-}
-.tlalli-svg #tlalli {
+  aspect-ratio: 1;
+  pointer-events: none;
   animation: tlalli-flotar 5s ease-in-out infinite;
+  will-change: transform;
 }
-.tlalli-svg #ojo-izquierdo,
-.tlalli-svg #ojo-derecho {
-  transform-box: fill-box;
-  transform-origin: center;
+.tlalli-fig img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tlalli-cuerpo {
+  filter: drop-shadow(0 10px 7px rgba(20, 12, 8, 0.5));
+}
+.tlalli-ojos {
+  transform-origin: 50% 53.75%; /* altura de los ojos dentro de la imagen */
   animation: tlalli-parpadeo 5.5s infinite;
 }
-.tlalli-svg #nubes {
-  animation: tlalli-nubes 9s ease-in-out infinite alternate;
-}
 /* Cuando hay música, Tlalli se mece al ritmo */
-.tlalli-svg.is-listening #tlalli {
+.tlalli-fig.is-listening {
   animation: tlalli-bailar 1.6s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 @keyframes tlalli-flotar {
@@ -35,8 +37,4 @@
 @keyframes tlalli-parpadeo {
   0%, 92%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.08); }
-}
-@keyframes tlalli-nubes {
-  from { transform: translateX(-7px); }
-  to { transform: translateX(7px); }
 }
