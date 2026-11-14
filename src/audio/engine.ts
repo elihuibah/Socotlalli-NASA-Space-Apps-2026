@@ -1,151 +1,196 @@
-// Motor de audio PROVISIONAL con Web Audio, para que la interfaz suene desde hoy.
-// El equipo de Audio lo reemplaza con Tone.js conservando esta misma interfaz.
-import type { Disc } from '../data/discs'
+/**
+ * Motor de audio: une modos, mapeo, armonía, instrumentos y efectos
+ * sobre el reloj de Tone.js (Transport).
+ */
+import * as Tone from "tone";
+import { calibrate, DEFAULT_CALIBRATION, normalizedFrameChange, type Calibration } from "./calibration";
+import { EffectsChain } from "./effects";
+import { Harmony, midiToNote } from "./harmony";
+import { Instrument, presetFor } from "./instruments";
+import { LEGEND, type LegendContext } from "./legend";
+import { mapCell } from "./mapping";
+import { RegionMode } from "./modes/region";
+import { ScanMode } from "./modes/scan";
+import { changeToTempo, rawFrameChange } from "./rhythm";
+import type {
+  AudioEngineApi,
+  Disc,
+  FrameCallback,
+  ListeningMode,
+  Mode,
+  NoteCallback,
+  NoteEvent,
+  Subdivision,
+} from "./types";
 
-export interface NoteEvent {
-  midi: number
-  tension: number
-  pan: number
-}
+export class AudioEngine implements AudioEngineApi {
+  private disc: Disc | null = null;
+  private mode: Mode = "scan";
+  private scan: ScanMode | null = null;
+  private region: RegionMode | null = null;
+  private harmony = new Harmony("majorPentatonic", 60);
+  private calibration: Calibration = DEFAULT_CALIBRATION;
+  private effects: EffectsChain | null = null;
+  private instrument: Instrument | null = null;
+  private eventId: number | null = null;
+  private lastFrame = -1;
+  private noteListeners = new Set<NoteCallback>();
+  private frameListeners = new Set<FrameCallback>();
 
-type Listener = (n: NoteEvent) => void
+  // -------------------------------------------------------------------------
+  // Contrato 2
+  // -------------------------------------------------------------------------
 
-export interface AudioEngine {
-  start(): Promise<void> // llamar dentro de un clic: el navegador lo exige
-  loadDisc(disc: Disc): void
-  setFrame(index: number): void
-  play(): void
-  pause(): void
-  onNote(cb: Listener): () => void
-  preview(rule: number): void // ejemplos de "Cómo se escucha"
-}
+  loadDisc(disc: Disc): void {
+    this.pause();
+    this.disc = disc;
+    this.scan = new ScanMode(disc);
+    this.region = new RegionMode(disc);
+    this.calibration = calibrate(disc);
+    this.lastFrame = -1;
 
-const SCALE = [0, 2, 4, 7, 9] // pentatónica mayor
-const STEPS = 16
+    this.ensureEffects();
+    this.instrument?.dispose();
+    const preset = presetFor(disc.id);
+    this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
+    this.instrument = new Instrument(preset, this.effects!.input);
+  }
 
-function createEngine(): AudioEngine {
-  let ctx: AudioContext | null = null
-  let master: GainNode | null = null
-  let disc: Disc | null = null
-  let frame = 0
-  let step = 0
-  let playing = false
-  let timer: number | undefined
-  const listeners = new Set<Listener>()
+  async play(): Promise<void> {
+    if (!this.disc) return;
+    // El navegador bloquea el audio hasta un gesto del usuario.
+    await Tone.start();
+    const transport = Tone.getTransport();
+    if (this.eventId === null) this.scheduleNext(transport.seconds);
+    transport.start();
+  }
 
-  const ensure = () => {
-    if (!ctx) {
-      ctx = new AudioContext()
-      master = ctx.createGain()
-      master.gain.value = 0.16
-      master.connect(ctx.destination)
+  pause(): void {
+    const transport = Tone.getTransport();
+    transport.pause();
+    if (this.eventId !== null) {
+      transport.clear(this.eventId);
+      this.eventId = null;
     }
-    return ctx
+    this.instrument?.releaseAll();
   }
 
-  const voice = (midi: number, when: number, dur: number, pan: number, type: OscillatorType, gain = 0.45) => {
-    const c = ensure()
-    if (!master) return
-    const osc = c.createOscillator()
-    osc.type = type
-    osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12)
-    const filter = c.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = type === 'sawtooth' || type === 'square' ? 1400 : 4000
-    const env = c.createGain()
-    env.gain.setValueAtTime(0, when)
-    env.gain.linearRampToValueAtTime(gain, when + 0.012)
-    env.gain.exponentialRampToValueAtTime(0.0001, when + dur)
-    const panner = c.createStereoPanner()
-    panner.pan.value = Math.max(-1, Math.min(1, pan))
-    osc.connect(filter).connect(env).connect(panner).connect(master)
-    osc.start(when)
-    osc.stop(when + dur + 0.05)
+  setMode(mode: Mode): void {
+    this.mode = mode;
+    this.activeMode()?.reset();
+    this.lastFrame = -1;
   }
 
-  const tick = () => {
-    if (!disc || !ctx) return
-    const f = disc.frames[frame]
-    const x = (step % STEPS) / (STEPS - 1) // barrido de oeste a este
-    step += 1
-    // Densidad rítmica: más variación, más notas.
-    if (Math.random() > 0.35 + 0.65 * f.variation) return
-    // Altura: valor más alto, nota más aguda.
-    const deg = Math.max(0, Math.min(9, Math.round(f.value * 9 + (x - 0.5) * 3 + (Math.random() - 0.5) * 2)))
-    const midi = disc.baseMidi + 12 * Math.floor(deg / 5) + SCALE[deg % 5]
-    const pan = x * 2 - 1
-    const tension = Math.abs(f.anomaly)
-    const now = ctx.currentTime + 0.02
-    voice(midi, now, 1.4, pan, disc.wave)
-    // Tensión: cerca de lo normal, quinta; luego séptima; lejos, segunda menor o tritono.
-    if (Math.random() < 0.25 + tension * 0.75) {
-      const interval = tension > 0.66 ? (Math.random() < 0.5 ? 1 : 6) : tension > 0.33 ? 10 : 7
-      voice(midi + interval, now + 0.01, 1.2, pan, disc.wave, 0.3)
-    }
-    listeners.forEach((cb) => cb({ midi, tension, pan }))
+  setRegion(col: number, row: number): void {
+    this.region?.setRegion(col, row);
   }
 
-  const schedule = () => {
-    window.clearInterval(timer)
-    if (!playing || !disc) return
-    const bpm = 60 + 60 * disc.frames[frame].change // tempo: cambio entre fotogramas
-    timer = window.setInterval(tick, 60000 / bpm / 2)
+  onNote(callback: NoteCallback): () => void {
+    this.noteListeners.add(callback);
+    return () => this.noteListeners.delete(callback);
   }
 
-  return {
-    async start() {
-      try {
-        await ensure().resume()
-      } catch {
-        // Si el navegador rechaza el audio, la interfaz sigue funcionando sin sonido.
-      }
-    },
-    loadDisc(d) {
-      disc = d
-      frame = 0
-      step = 0
-      schedule()
-    },
-    setFrame(i) {
-      if (!disc) return
-      frame = Math.max(0, Math.min(disc.frames.length - 1, i))
-      step = 0
-      schedule()
-    },
-    play() {
-      ensure()
-      playing = true
-      schedule()
-    },
-    pause() {
-      playing = false
-      window.clearInterval(timer)
-    },
-    onNote(cb) {
-      listeners.add(cb)
-      return () => {
-        listeners.delete(cb)
-      }
-    },
-    preview(rule) {
-      const c = ensure()
-      void c.resume()
-      const t = c.currentTime + 0.05
-      const n = (m: number, at: number, pan = 0, type: OscillatorType = 'triangle') => voice(m, t + at, 1, pan, type)
-      if (rule === 0) {
-        // graves y luego agudas
-        ;[55, 59, 62].forEach((m, i) => n(m, i * 0.35))
-        ;[74, 79, 83].forEach((m, i) => n(m, 1.4 + i * 0.35))
-      } else if (rule === 1) {
-        // acorde limpio y luego tenso
-        ;[60, 64, 67].forEach((m) => n(m, 0))
-        ;[60, 61, 66].forEach((m) => n(m, 1.4))
-      } else {
-        // de un oído al otro
-        Array.from({ length: 9 }, (_, i) => n(64 + SCALE[i % 5], i * 0.25, -1 + i * 0.25, 'sine'))
-      }
-    },
+  // -------------------------------------------------------------------------
+  // Extras (no forman parte del contrato mínimo)
+  // -------------------------------------------------------------------------
+
+  /** Avisa cuando cambia el fotograma, para el texto en vivo. */
+  onFrame(callback: FrameCallback): () => void {
+    this.frameListeners.add(callback);
+    return () => this.frameListeners.delete(callback);
+  }
+
+  /** Cortes calculados para el disco cargado (para depurar). */
+  getCalibration(): Calibration {
+    return this.calibration;
+  }
+
+  /** Toca un ejemplo de la leyenda sonora por id. */
+  async playLegend(id: string): Promise<void> {
+    const item = LEGEND.find((l) => l.id === id);
+    if (!item || !this.instrument || !this.effects) return;
+    await Tone.start();
+    const ctx: LegendContext = { instrument: this.instrument, effects: this.effects, harmony: this.harmony };
+    item.play(ctx, Tone.now() + 0.05);
+  }
+
+  dispose(): void {
+    this.pause();
+    this.instrument?.dispose();
+    this.effects?.dispose();
+    this.instrument = null;
+    this.effects = null;
+    this.noteListeners.clear();
+    this.frameListeners.clear();
+  }
+
+  // -------------------------------------------------------------------------
+  // Internos
+  // -------------------------------------------------------------------------
+
+  private ensureEffects(): void {
+    if (!this.effects) this.effects = new EffectsChain();
+  }
+
+  private activeMode(): ListeningMode | null {
+    return this.mode === "scan" ? this.scan : this.region;
+  }
+
+  /**
+   * Programa un solo paso y, al sonar, programa el siguiente.
+   * Así cada nota puede tener su propia duración (densidad rítmica).
+   */
+  private scheduleNext(at: number): void {
+    const transport = Tone.getTransport();
+    this.eventId = transport.scheduleOnce((time) => {
+      const duration = this.step(time);
+      this.scheduleNext(at + Tone.Time(duration).toSeconds());
+    }, at);
+  }
+
+  /** Toca una celda y devuelve cuánto dura el paso. */
+  private step(time: number): Subdivision {
+    const mode = this.activeMode();
+    if (!this.disc || !mode || !this.instrument || !this.effects) return "4n";
+
+    const sample = mode.next();
+    this.handleFrameChange(sample?.frameIndex ?? mode.frameIndex);
+    if (!sample) return "8n"; // celda sin dato: silencio breve
+
+    const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
+      useLatLon: this.mode === "scan",
+    });
+    const notes = this.harmony.chord(params.midi, params.tension).map(midiToNote);
+
+    this.effects.setBrightness(params.brightness, time);
+    this.effects.setPan(params.pan, time);
+    this.instrument.play(notes, params.subdivision, time, params.velocity);
+
+    const event: NoteEvent = {
+      note: midiToNote(params.midi),
+      midi: params.midi,
+      col: sample.col,
+      row: sample.row,
+      frameIndex: sample.frameIndex,
+      value: sample.value,
+      anomaly: sample.anomaly,
+      tension: params.tension,
+      time,
+      duration: params.subdivision,
+    };
+    // Sincroniza el aviso visual con el momento en que suena.
+    Tone.getDraw().schedule(() => this.noteListeners.forEach((cb) => cb(event)), time);
+
+    return params.subdivision;
+  }
+
+  private handleFrameChange(frameIndex: number): void {
+    if (!this.disc || frameIndex === this.lastFrame) return;
+    const prev = this.lastFrame >= 0 ? this.disc.frames[this.lastFrame] : undefined;
+    const frame = this.disc.frames[frameIndex];
+    const change = normalizedFrameChange(rawFrameChange(prev, frame, this.disc.mask), this.calibration);
+    Tone.getTransport().bpm.rampTo(changeToTempo(change), 0.5);
+    this.lastFrame = frameIndex;
+    Tone.getDraw().schedule(() => this.frameListeners.forEach((cb) => cb(frameIndex, frame)), Tone.now());
   }
 }
-
-export const engine = createEngine()
