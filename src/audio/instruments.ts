@@ -27,6 +27,22 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.6 },
     baseOctave: 3,
   },
+  // Tercer disco: el plan propone hielo marino o vegetación. La clave debe
+  // coincidir con el "id" del disc.json que entregue Datos.
+  ice: {
+    id: "ice",
+    // Campanas frías, ataque rápido y cola larga (evoca armónicos de guitarra).
+    oscillator: "amsine",
+    envelope: { attack: 0.005, decay: 0.4, sustain: 0.2, release: 1.6 },
+    baseOctave: 5,
+  },
+  vegetation: {
+    id: "vegetation",
+    // Cálido y redondo, registro medio-grave.
+    oscillator: "fatsawtooth",
+    envelope: { attack: 0.08, decay: 0.3, sustain: 0.5, release: 0.9 },
+    baseOctave: 3,
+  },
   // TODO(audio, nivel 3): preset "guitar" con samples:
   // samples: { baseUrl: "samples/classical/", urls: { E2: "E2.mp3", G2: "G2.mp3", ... } }
 };

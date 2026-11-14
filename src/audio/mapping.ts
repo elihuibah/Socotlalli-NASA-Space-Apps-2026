@@ -9,10 +9,13 @@
  * | Variación entre vecinos       | Densidad rítmica                       |
  * | Cambio entre fotogramas       | Tempo (ver rhythm.ts)                  |
  * | Longitud y latitud            | Paneo y registro (modo barrido)        |
+ *
+ * Los cortes de tensión y densidad se calibran por disco (calibration.ts).
  */
+import { subdivisionFor, tensionFor, type Calibration } from "./calibration";
 import type { Harmony } from "./harmony";
-import { clamp01, densityToSubdivision } from "./rhythm";
-import type { Brightness, CellSample, Disc, MusicalParams, TensionLevel } from "./types";
+import { clamp01 } from "./rhythm";
+import type { Brightness, CellSample, Disc, MusicalParams } from "./types";
 
 /** Cuántos grados de escala cubre el rango de valores 0..1. */
 export const DEGREE_SPAN = 10;
@@ -29,8 +32,11 @@ export function hasData(disc: Disc, col: number, row: number): boolean {
   return disc.mask ? disc.mask[cellIndex(disc, col, row)] === 1 : true;
 }
 
-/** Desviación media de la celda respecto a sus 4 vecinos, 0..1. */
-export function neighborVariation(values: number[], disc: Disc, col: number, row: number): number {
+/**
+ * Desviación media de la celda respecto a sus 4 vecinos con dato, sin escalar (0..1).
+ * La calibración del disco decide qué tanto es "mucho".
+ */
+export function rawNeighborVariation(values: number[], disc: Disc, col: number, row: number): number {
   const { cols, rows } = disc.grid;
   const center = values[cellIndex(disc, col, row)];
   const offsets = [
@@ -49,8 +55,7 @@ export function neighborVariation(values: number[], disc: Disc, col: number, row
     sum += Math.abs(values[cellIndex(disc, c, r)] - center);
     count++;
   }
-  // TODO(audio): calibrar; ×4 hace que 0.25 de diferencia ya sea densidad máxima.
-  return count ? clamp01((sum / count) * 4) : 0;
+  return count ? clamp01(sum / count) : 0;
 }
 
 /** Lee una celda de un fotograma con todo lo que necesita el mapeo. */
@@ -63,7 +68,7 @@ export function sampleCell(disc: Disc, frameIndex: number, col: number, row: num
     frameIndex,
     value: frame.values[i],
     anomaly: frame.anomaly[i],
-    neighborVariation: neighborVariation(frame.values, disc, col, row),
+    neighborVariation: rawNeighborVariation(frame.values, disc, col, row),
     hasData: hasData(disc, col, row),
   };
 }
@@ -75,15 +80,6 @@ export function sampleCell(disc: Disc, frameIndex: number, col: number, row: num
 /** Valor 0..1 → grado de escala; más valor, más agudo. */
 export function valueToDegree(value: number): number {
   return Math.round(clamp01(value) * DEGREE_SPAN);
-}
-
-/** |anomalía| → nivel de tensión. */
-export function anomalyToTension(anomaly: number): TensionLevel {
-  const a = Math.abs(anomaly);
-  if (a < 0.15) return 0;
-  if (a < 0.35) return 1;
-  if (a < 0.6) return 2;
-  return 3;
 }
 
 export function anomalyToBrightness(anomaly: number): Brightness {
@@ -106,6 +102,7 @@ export function mapCell(
   sample: CellSample,
   disc: Disc,
   harmony: Harmony,
+  cal: Calibration,
   opts: { useLatLon: boolean } = { useLatLon: true },
 ): MusicalParams {
   const scaleLen = harmony.scale.length;
@@ -114,9 +111,9 @@ export function mapCell(
   return {
     degree,
     midi: harmony.degreeToMidi(degree),
-    tension: anomalyToTension(sample.anomaly),
+    tension: tensionFor(sample.anomaly, cal),
     brightness: anomalyToBrightness(sample.anomaly),
-    subdivision: densityToSubdivision(sample.neighborVariation),
+    subdivision: subdivisionFor(sample.neighborVariation, cal),
     pan: opts.useLatLon ? colToPan(sample.col, disc.grid.cols) : 0,
     velocity: 0.5 + 0.5 * Math.abs(sample.anomaly),
   };
