@@ -80,8 +80,12 @@ def main() -> None:
         "id": DISC_ID,
         "title": "Disco de prueba",
         "units": "°C",
+        "measure": "Datos sintéticos para pruebas: gradiente por latitud y una mancha cálida al este",
+        "accent": "#888888",
+        "range": [0.0, 32.0],
         "credit": "Datos sintéticos generados por pipeline/make_fake.py",
         "grid": {"cols": COLS, "rows": ROWS},
+        "mask": [1] * CELLS,
         "frames": frames,
     }
     out = DISCS_DIR / f"{DISC_ID}.json"
