@@ -80,8 +80,11 @@ def date_label(date: str) -> str:
 
 def sentence(date: str, values_real: np.ndarray, diff_real: np.ndarray,
              mask: np.ndarray, units: str, threshold: float,
-             place: str = "ocean", show_mean: bool = True) -> str:
-    """values_real y diff_real en unidades reales (°C, ppm), 512 celdas."""
+             place: str = "ocean", show_mean: bool = True,
+             phrase: tuple[str, str] | None = None) -> str:
+    """values_real y diff_real en unidades reales (°C, %), 512 celdas.
+    phrase: plantillas (sobre, bajo) para la cantidad, con {v} y {units}. Por defecto
+    '{v:.1f} {units} sobre lo normal' y '... bajo lo normal'."""
     label = date_label(date)
     head = f"{label}: promedio {values_real[mask].mean():.1f} {units}" if show_mean else label
     d = np.where(mask, diff_real, 0)
@@ -89,5 +92,6 @@ def sentence(date: str, values_real: np.ndarray, diff_real: np.ndarray,
     if abs(d[i]) < threshold:
         return f"{head}, todo cerca de lo normal"
     lat, lon = lat_lon(*col_row(i))
-    side = "sobre" if d[i] > 0 else "bajo"
-    return f"{head}; mayor cambio en {PLACES[place](lat, lon)}, {abs(d[i]):.1f} {units} {side} lo normal"
+    above, below = phrase or ("{v:.1f} {units} sobre lo normal", "{v:.1f} {units} bajo lo normal")
+    amount = (above if d[i] > 0 else below).format(v=abs(d[i]), units=units)
+    return f"{head}; mayor cambio en {PLACES[place](lat, lon)}, {amount}"
