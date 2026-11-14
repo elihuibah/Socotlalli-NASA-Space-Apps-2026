@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Pipeline de datos
+__pycache__/
+pipeline/raw/
