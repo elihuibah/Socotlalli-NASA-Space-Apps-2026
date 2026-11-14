@@ -1,1 +1,10 @@
-# Aqui van las decisiones de cada uno 
+# Notes
+## Audio 
+
+## Data
+
+## Frontend A
+
+## Frontend B
+
+## Integration
