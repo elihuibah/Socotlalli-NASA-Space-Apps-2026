@@ -84,6 +84,15 @@ SOURCES = {
         "colorbar": "Aerosols_cbar.png",
         "stills": {"2025-08-19": "Aerosols_2025-08-19T20_00_00_3840x2160.png"},
     },
+    # Globo que gira (no hay versión en mapa plano). Cada vista es un fotograma del disco;
+    # el nombre de cada vista vive en build_disc.DISCS["forest"]["views"].
+    "forest": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/",
+        "colorbar": "GEDI_global_w_colorbar_0230_print.tif",  # imagen 4K con la barra abajo
+        "colorbar_name": "colorbar.tif",
+        "numbers": ["0230", "0600", "0800", "1055", "1400", "1650", "1900", "2200"],
+        "frame": "frames/3840x2160_16x9_60p/GEDI_global/GEDI_global.{n}.tif",
+    },
 }
 
 
@@ -103,7 +112,12 @@ def main() -> None:
     out = RAW / disc_id
     out.mkdir(parents=True, exist_ok=True)
 
-    fetch(src["base"] + src["colorbar"], out / "colorbar.png")
+    fetch(src["base"] + src["colorbar"], out / src.get("colorbar_name", "colorbar.png"))
+    if "numbers" in src:  # fotogramas elegidos a mano por número (vistas del globo)
+        for n in src["numbers"]:
+            fetch(src["base"] + src["frame"].format(n=n), out / f"{n}.{src['frame'].rsplit('.', 1)[1]}")
+        print(f"OK: {len(src['numbers'])} fotogramas en {out}")
+        return
     if "stills" in src:  # imágenes fijas: la fecha viene en la configuración
         for date, name in src["stills"].items():
             fetch(src["base"] + name, out / f"{date}.{name.rsplit('.', 1)[1]}")

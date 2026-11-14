@@ -14,11 +14,12 @@ from PIL import Image
 
 import anomaly
 import describe
+import globe
 from categories import Categories
 from colorbar import Colorbar
 from contract import CELLS, COLS, DISCS_DIR, FRAMES_DIR, PUBLIC, ROWS
 from download import RAW
-from grid import to_grid
+from grid import to_grid, to_grid_percentile
 
 # Datos fijos de cada disco. Para agregar un disco: una entrada aquí y otra en download.SOURCES.
 #   scale:   valores reales en los extremos de la barra de colores completa
@@ -35,6 +36,8 @@ from grid import to_grid
 #            lleva "layers" con un valor por categoría y values es la suma (0..1)
 #   layer_names: nombre de cada categoría para el texto y la interfaz
 #   accent:  color de acento del disco para la interfaz, tomado de la leyenda de su visualización
+#   globe:   la visualización es un globo que gira; cada vista (views: número -> nombre) es un
+#            fotograma, la rejilla va sobre el cuadrado del globo y cada frame trae su mask
 DISCS = {
     "sst": {
         "title": "Temperatura del mar",
@@ -95,7 +98,35 @@ DISCS = {
                   "Ardizzone, Helen-Nicole Kostis; ciencia: Lesley Ott; modelo GEOS-FP 2 km Replay, "
                   "19 de agosto de 2025, 20:00 UTC). https://svs.gsfc.nasa.gov/5669",
     },
+    "forest": {
+        "title": "Altura de los bosques",
+        "accent": "#84974a",   # verde del centro de su barra (~25 m)
+        "units": "m",
+        "measure": "Altura de la vegetación más alta de la celda (percentil 90), en metros. La rejilla "
+                   "va sobre el globo tal como se ve, no sobre un mapa; cada fotograma es una vista",
+        "range": (0.0, 50.0),        # la barra marca de 0 a 50 m (la flecha es 50 o más)
+        "globe": True,
+        "bar": {"row": 2004, "x_range": (127, 938), "extent": (125, 939)},  # medido en colorbar.tif
+        "percentile": 90,
+        "date": "2019-04",           # el dato es un solo periodo: abril 2019 a abril 2020
+        "period": "abril de 2019 a abril de 2020",
+        "views": {
+            "0230": "Asia oriental y Oceanía",
+            "0600": "Asia del sur y el océano Índico",
+            "0800": "África oriental y Medio Oriente",
+            "1055": "África y Europa",
+            "1400": "El Atlántico sur, entre Sudamérica y África",
+            "1650": "Sudamérica",
+            "1900": "Las Américas",
+            "2200": "Norteamérica y el Pacífico",
+        },
+        "credit": "NASA Scientific Visualization Studio, GEDI Forest Height (visualización: Kel Elkins, "
+                  "Horace Mitchell, Greg Shirah; ciencia: Temilola Fatoyinbo, Atticus Stovall; dato "
+                  "GEDI L2B RH100, abril 2019 a abril 2020). https://svs.gsfc.nasa.gov/4950",
+    },
 }
+
+GLOBE_WEB_SIZE = (768, 768)  # las vistas del globo son cuadradas
 
 WEB_SIZE = (1024, 512)    # tamaño de la imagen que ve el navegador
 WORK_SIZE = (2048, 1024)  # tamaño al que se lee la imagen (64x64 píxeles por celda)
@@ -123,18 +154,37 @@ def main() -> None:
     disc_id = sys.argv[1] if len(sys.argv) > 1 else "sst"
     cfg = DISCS[disc_id]
     raw = RAW / disc_id
-    files = sorted(p for p in raw.glob("[12][0-9][0-9][0-9]-*.*"))  # AAAA-MM[-DD].ext
+    if "views" in cfg:
+        files = [raw / f"{n}.tif" for n in cfg["views"]]
+        files = [f for f in files if f.exists()]
+    else:
+        files = sorted(p for p in raw.glob("[12][0-9][0-9][0-9]-*.*"))  # AAAA-MM[-DD].ext
     if not files:
         sys.exit(f"No hay fotogramas en {raw}. Corre primero: python pipeline/download.py {disc_id}")
 
     cats = Categories(cfg["categories"]) if "categories" in cfg else None
-    cb = None if cats else Colorbar(raw / "colorbar.png", extent=cfg.get("extent"))
+    bar = None
+    if cfg.get("globe"):
+        b = cfg["bar"]
+        bar = globe.RampBar(raw / "colorbar.tif", b["row"], b["x_range"], b["extent"])
+    cb = None if (cats or bar) else Colorbar(raw / "colorbar.png", extent=cfg.get("extent"))
     out_frames = FRAMES_DIR / disc_id
     out_frames.mkdir(parents=True, exist_ok=True)
     DISCS_DIR.mkdir(parents=True, exist_ok=True)
 
     values, coverage, images, layers = [], [], [], []
     for i, f in enumerate(files):
+        if bar:
+            raw_img = Image.open(f)
+            pos, ok = globe.read(raw_img, bar)
+            cell_v, cell_cov = to_grid_percentile(pos, ok, cfg["percentile"])
+            values.append(cell_v)
+            coverage.append(cell_cov)
+            web = out_frames / f"{i:03d}.jpg"
+            globe.square(raw_img).resize(GLOBE_WEB_SIZE, Image.LANCZOS).save(web, quality=85)
+            images.append(web.relative_to(PUBLIC).as_posix())
+            print(f"  {cfg['views'][f.stem]}: {np.mean(cell_cov >= 0.03):.0%} de celdas con vegetación")
+            continue
         img = Image.open(f).convert("RGB")
         if cats:
             # BOX promedia: aquí la intensidad del color es el dato, así que mezclar es correcto
@@ -155,10 +205,17 @@ def main() -> None:
         print(f"  {f.stem}: {np.mean(cell_cov > 0.03):.0%} de celdas con dato")
 
     values = np.stack(values)
-    # una celda cuenta si tiene dato en todos los fotogramas (la tierra no cambia)
-    mask = (np.stack(coverage) >= 0.03).all(axis=0)
-    values[:, ~mask] = 0.0
-    anom = anomaly.compute(values, mask)
+    frame_masks = np.stack(coverage) >= 0.03
+    if bar:
+        # cada vista tiene su propia tierra visible; el disco marca la unión de todas
+        mask = frame_masks.any(axis=0)
+        values[~frame_masks] = 0.0
+        anom, _ = anomaly.compute_per_frame(values, frame_masks)
+    else:
+        # una celda cuenta si tiene dato en todos los fotogramas (la tierra no cambia)
+        mask = frame_masks.all(axis=0)
+        values[:, ~mask] = 0.0
+        anom = anomaly.compute(values, mask)
 
     lo, hi = cfg["range"]
     real = lo + values * (hi - lo)
@@ -166,14 +223,19 @@ def main() -> None:
 
     frames = []
     for i, f in enumerate(files):
-        date = f.stem  # los archivos se llaman AAAA-MM o AAAA-MM-DD
+        date = cfg.get("date", f.stem)  # los archivos se llaman AAAA-MM o AAAA-MM-DD
         frame = {
             "date": date,
             "image": images[i],
             "values": [round(float(x), 3) for x in values[i]],
             "anomaly": [round(float(x), 3) for x in anom[i]],
         }
-        if cats:
+        if bar:
+            view = cfg["views"][f.stem]
+            frame["view"] = view
+            frame["mask"] = [int(m) for m in frame_masks[i]]
+            frame["text"] = describe.sentence_view(view, real[i], frame_masks[i])
+        elif cats:
             frame["layers"] = {k: [round(float(x), 3) for x in v] for k, v in layers[i].items()}
             frame["text"] = describe.sentence_layers(date, values[i], layers[i],
                                                      cfg["layer_names"], mask, cfg["place"])
@@ -197,6 +259,9 @@ def main() -> None:
     }
     if cats:
         disc["layer_names"] = cfg["layer_names"]
+    if bar:
+        disc["period"] = cfg["period"]
+        disc["view_mode"] = "globe"
     out = DISCS_DIR / f"{disc_id}.json"
     out.write_text(json.dumps(disc, ensure_ascii=False), encoding="utf-8")
     print(f"OK: {out.name}, {len(frames)} fotogramas, {mask.sum()} de {CELLS} celdas con dato")
