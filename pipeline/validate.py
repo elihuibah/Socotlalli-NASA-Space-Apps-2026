@@ -27,6 +27,8 @@ def check(path) -> list[str]:
         errs.append(f"id '{d['id']}' no coincide con el archivo '{path.stem}'")
     if d["grid"] != {"cols": COLS, "rows": ROWS}:
         errs.append(f"grid debe ser {COLS}x{ROWS}, es {d['grid']}")
+    if "mask" in d and (len(d["mask"]) != CELLS or set(d["mask"]) - {0, 1}):
+        errs.append(f"mask debe tener {CELLS} valores 0 o 1")
     if not d["frames"]:
         errs.append("no hay fotogramas")
 
