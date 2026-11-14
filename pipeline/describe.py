@@ -130,3 +130,23 @@ def sentence_layers(date: str, values: np.ndarray, layers: dict[str, np.ndarray]
     lat, lon = lat_lon(*col_row(i))
     return (f"{label}: en todo el mapa predomina {names[main]}; "
             f"la mayor carga está en {PLACES[place](lat, lon)}, sobre todo {names[top]}")
+
+
+def screen_position(col: int, row: int) -> str:
+    """Posición de la celda en pantalla, para discos sin coordenadas (vistas del globo)."""
+    vert = "arriba" if row < 5 else "abajo" if row >= 11 else "al centro"
+    horiz = "a la izquierda" if col < 11 else "a la derecha" if col >= 21 else ""
+    if vert == "al centro" and horiz:
+        return f"al centro, {horiz}"
+    return f"{vert} {horiz}".strip()
+
+
+def sentence_view(view: str, heights: np.ndarray, mask: np.ndarray, tall: float = 20.0) -> str:
+    """Frase para una vista del globo de altura de bosques. heights en metros, 512 celdas."""
+    if not mask.any():
+        return f"{view}: casi todo lo visible es océano"
+    i = int(np.argmax(np.where(mask, heights, -1)))
+    share = float((heights[mask] >= tall).mean()) * 100
+    return (f"{view}: la vegetación más alta, unos {heights[i]:.0f} m, está "
+            f"{screen_position(*col_row(i))}; {share:.0f} % de la tierra visible tiene "
+            f"árboles de {tall:.0f} m o más")
