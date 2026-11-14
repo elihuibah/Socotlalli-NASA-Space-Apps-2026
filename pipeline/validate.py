@@ -45,6 +45,12 @@ def check(path) -> list[str]:
             bad = [x for x in arr if not isinstance(x, (int, float)) or not lo <= x <= hi]
             if bad:
                 errs.append(f"{p}: {len(bad)} valores de {key} fuera de [{lo}, {hi}]")
+        if "layers" in f:
+            if set(f["layers"]) != set(d.get("layer_names", {})):
+                errs.append(f"{p}: layers no coincide con layer_names del disco")
+            for name, arr in f["layers"].items():
+                if len(arr) != CELLS or any(not 0 <= x <= 1 for x in arr):
+                    errs.append(f"{p}: layers.{name} debe tener {CELLS} valores de 0 a 1")
         if not (PUBLIC / f["image"]).is_file():
             errs.append(f"{p}: no existe la imagen public/{f['image']}")
         if not f["text"].strip():
