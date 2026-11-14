@@ -66,7 +66,28 @@ def land(lat: float, lon: float) -> str:
     return f"{name} ({coords(lat, lon)})"
 
 
-PLACES = {"ocean": ocean, "land": land}
+_SEA: list[int] | None = None
+
+
+def auto(lat: float, lon: float) -> str:
+    """Nombra la celda como océano o como tierra según la máscara del disco de temperatura
+    del mar (celda con dato = mar). Para discos con dato en mar y en tierra, como aerosoles."""
+    global _SEA
+    if _SEA is None:
+        import json
+        from contract import DISCS_DIR
+        path = DISCS_DIR / "sst.json"
+        _SEA = json.loads(path.read_text(encoding="utf-8"))["mask"] if path.exists() else []
+    if not _SEA:
+        return f"cerca de {coords(lat, lon)}"
+    col = min(COLS - 1, int((lon + 180) / 360 * COLS))
+    row = min(ROWS - 1, int((90 - lat) / 180 * ROWS))
+    if _SEA[row * COLS + col]:
+        return f"{ocean(lat, lon)} ({coords(lat, lon)})"
+    return land(lat, lon)
+
+
+PLACES = {"ocean": ocean, "land": land, "auto": auto}
 
 
 def date_label(date: str) -> str:
@@ -95,3 +116,17 @@ def sentence(date: str, values_real: np.ndarray, diff_real: np.ndarray,
     above, below = phrase or ("{v:.1f} {units} sobre lo normal", "{v:.1f} {units} bajo lo normal")
     amount = (above if d[i] > 0 else below).format(v=abs(d[i]), units=units)
     return f"{head}; mayor cambio en {PLACES[place](lat, lon)}, {amount}"
+
+
+def sentence_layers(date: str, values: np.ndarray, layers: dict[str, np.ndarray],
+                    names: dict[str, str], mask: np.ndarray, place: str = "land") -> str:
+    """Frase para discos por categoría (aerosoles): qué tipo predomina en el mapa y
+    dónde está la mayor carga. values y layers: 512 celdas de 0 a 1; names: id -> nombre."""
+    label = date_label(date)
+    totals = {k: float(v[mask].mean()) for k, v in layers.items()}
+    main = max(totals, key=totals.get)
+    i = int(np.argmax(np.where(mask, values, -1)))
+    top = max(layers, key=lambda k: layers[k][i])
+    lat, lon = lat_lon(*col_row(i))
+    return (f"{label}: en todo el mapa predomina {names[main]}; "
+            f"la mayor carga está en {PLACES[place](lat, lon)}, sobre todo {names[top]}")
