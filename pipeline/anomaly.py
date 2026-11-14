@@ -32,3 +32,16 @@ def compute(values: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
     if scale == 0:  # todos iguales: no hay anomalía
         return np.zeros_like(d)
     return np.clip(d / scale, -1.0, 1.0)
+
+
+def compute_per_frame(values: np.ndarray, masks: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Para discos cuyos fotogramas muestran lugares distintos (vistas del globo): cada
+    fotograma se compara contra su propio promedio, usando solo sus celdas con dato.
+    values, masks: (n_frames, 512). Devuelve (anomalía -1..1, diferencia en unidades de values)."""
+    values = np.asarray(values, dtype=float)
+    d = np.zeros_like(values)
+    for i, (v, m) in enumerate(zip(values, masks)):
+        if m.any():
+            d[i] = np.where(m, v - v[m].mean(), 0.0)
+    scale = np.abs(d).max()
+    return (np.clip(d / scale, -1.0, 1.0) if scale else d), d
