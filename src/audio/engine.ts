@@ -3,6 +3,7 @@
  * sobre el reloj de Tone.js (Transport).
  */
 import * as Tone from "tone";
+import { calibrate, DEFAULT_CALIBRATION, normalizedFrameChange, type Calibration } from "./calibration";
 import { EffectsChain } from "./effects";
 import { Harmony, midiToNote } from "./harmony";
 import { Instrument, presetFor } from "./instruments";
@@ -10,7 +11,7 @@ import { LEGEND, type LegendContext } from "./legend";
 import { mapCell } from "./mapping";
 import { RegionMode } from "./modes/region";
 import { ScanMode } from "./modes/scan";
-import { changeToTempo, frameChange } from "./rhythm";
+import { changeToTempo, rawFrameChange } from "./rhythm";
 import type {
   AudioEngineApi,
   Disc,
@@ -28,6 +29,7 @@ export class AudioEngine implements AudioEngineApi {
   private scan: ScanMode | null = null;
   private region: RegionMode | null = null;
   private harmony = new Harmony("majorPentatonic", 60);
+  private calibration: Calibration = DEFAULT_CALIBRATION;
   private effects: EffectsChain | null = null;
   private instrument: Instrument | null = null;
   private eventId: number | null = null;
@@ -44,6 +46,7 @@ export class AudioEngine implements AudioEngineApi {
     this.disc = disc;
     this.scan = new ScanMode(disc);
     this.region = new RegionMode(disc);
+    this.calibration = calibrate(disc);
     this.lastFrame = -1;
 
     this.ensureEffects();
@@ -95,6 +98,11 @@ export class AudioEngine implements AudioEngineApi {
   onFrame(callback: FrameCallback): () => void {
     this.frameListeners.add(callback);
     return () => this.frameListeners.delete(callback);
+  }
+
+  /** Cortes calculados para el disco cargado (para depurar). */
+  getCalibration(): Calibration {
+    return this.calibration;
   }
 
   /** Toca un ejemplo de la leyenda sonora por id. */
@@ -149,7 +157,9 @@ export class AudioEngine implements AudioEngineApi {
     this.handleFrameChange(sample?.frameIndex ?? mode.frameIndex);
     if (!sample) return "8n"; // celda sin dato: silencio breve
 
-    const params = mapCell(sample, this.disc, this.harmony, { useLatLon: this.mode === "scan" });
+    const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
+      useLatLon: this.mode === "scan",
+    });
     const notes = this.harmony.chord(params.midi, params.tension).map(midiToNote);
 
     this.effects.setBrightness(params.brightness, time);
@@ -178,7 +188,8 @@ export class AudioEngine implements AudioEngineApi {
     if (!this.disc || frameIndex === this.lastFrame) return;
     const prev = this.lastFrame >= 0 ? this.disc.frames[this.lastFrame] : undefined;
     const frame = this.disc.frames[frameIndex];
-    Tone.getTransport().bpm.rampTo(changeToTempo(frameChange(prev, frame, this.disc.mask)), 0.5);
+    const change = normalizedFrameChange(rawFrameChange(prev, frame, this.disc.mask), this.calibration);
+    Tone.getTransport().bpm.rampTo(changeToTempo(change), 0.5);
     this.lastFrame = frameIndex;
     Tone.getDraw().schedule(() => this.frameListeners.forEach((cb) => cb(frameIndex, frame)), Tone.now());
   }

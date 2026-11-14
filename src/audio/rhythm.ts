@@ -3,31 +3,24 @@
  *
  * - Variación entre píxeles vecinos → densidad rítmica (negras a semicorcheas).
  * - Cambio entre fotogramas → tempo de 60 a 120 BPM.
+ *
+ * Las escalas de cada disco se calculan en calibration.ts.
  */
-import type { Frame, Subdivision } from "./types";
+import type { Frame } from "./types";
 
 export const MIN_BPM = 60;
 export const MAX_BPM = 120;
 
-/** De menos a más denso. */
-const SUBDIVISIONS: readonly Subdivision[] = ["4n", "8n", "8t", "16n"];
-
-/** Variación local 0..1 → duración de nota. */
-export function densityToSubdivision(variation: number): Subdivision {
-  const i = Math.min(SUBDIVISIONS.length - 1, Math.floor(clamp01(variation) * SUBDIVISIONS.length));
-  return SUBDIVISIONS[i];
-}
-
-/** Cambio medio 0..1 entre fotogramas → BPM. */
+/** Cambio 0..1 (ya normalizado por la calibración) → BPM. */
 export function changeToTempo(change: number): number {
   return Math.round(MIN_BPM + clamp01(change) * (MAX_BPM - MIN_BPM));
 }
 
 /**
- * Cambio medio absoluto de `values` entre dos fotogramas, normalizado 0..1.
+ * Cambio medio absoluto de `values` entre dos fotogramas, sin escalar.
  * Si `mask` existe, solo cuenta celdas con dato.
  */
-export function frameChange(prev: Frame | undefined, next: Frame, mask?: number[]): number {
+export function rawFrameChange(prev: Frame | undefined, next: Frame, mask?: number[]): number {
   if (!prev) return 0;
   let sum = 0;
   let count = 0;
@@ -36,9 +29,7 @@ export function frameChange(prev: Frame | undefined, next: Frame, mask?: number[
     sum += Math.abs(next.values[i] - prev.values[i]);
     count++;
   }
-  if (count === 0) return 0;
-  // TODO(audio): calibrar la escala con los discos reales; 0.1 de cambio medio ya es mucho.
-  return clamp01((sum / count) * 10);
+  return count === 0 ? 0 : sum / count;
 }
 
 export function clamp01(x: number): number {

@@ -10,6 +10,7 @@
  *   setRegion(col, row)
  *   onNote(callback)  // devuelve una función para desuscribirse
  */
+import type { Calibration } from "./calibration";
 import { AudioEngine } from "./engine";
 import type { Disc, FrameCallback, Mode, NoteCallback } from "./types";
 
@@ -25,6 +26,8 @@ export const onNote = (callback: NoteCallback): (() => void) => engine.onNote(ca
 // Extras fuera del contrato mínimo.
 export const onFrame = (callback: FrameCallback): (() => void) => engine.onFrame(callback);
 export const playLegend = (id: string): Promise<void> => engine.playLegend(id);
+export const getCalibration = (): Calibration => engine.getCalibration();
 export { LEGEND } from "./legend";
+export type { Calibration } from "./calibration";
 
 export type { Disc, Frame, Mode, NoteEvent, NoteCallback, FrameCallback } from "./types";

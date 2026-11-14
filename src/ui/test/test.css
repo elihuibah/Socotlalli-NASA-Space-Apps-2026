@@ -1,0 +1,48 @@
+/* Estilos solo de la página de prueba (#test). */
+.tp {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  text-align: left;
+  font-family: system-ui, sans-serif;
+}
+.tp h1 { font-size: 1.6rem; margin: 0; }
+.tp h2 { margin: 16px 0 4px; }
+.tp h3 { font-size: 1rem; margin: 12px 0 6px; }
+.tp-sub, .tp-meta, .tp-credit { opacity: 0.7; font-size: 0.85rem; margin: 4px 0; }
+
+.tp-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+.tp-controls fieldset { display: flex; gap: 12px; border: 1px solid #8884; border-radius: 6px; padding: 4px 10px; }
+.tp-play { font-size: 1.1rem; padding: 8px 20px; }
+.tp button:focus-visible, .tp select:focus-visible, .tp input:focus-visible, .tp-map:focus-visible {
+  outline: 3px solid #f5a623;
+  outline-offset: 2px;
+}
+
+.tp-error { color: #d33; }
+
+.tp-map { position: relative; width: 100%; background: #111; cursor: crosshair; margin-top: 8px; }
+.tp-map img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.tp-scanline { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px #fff; transition: left 0.08s linear; }
+.tp-cell { position: absolute; box-sizing: border-box; border: 2px solid #fff; }
+.tp-region { border: 2px dashed #f5a623; }
+
+.tp-live { font-size: 1.05rem; min-height: 1.5em; }
+
+.tp-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .tp-grid2 { grid-template-columns: 1fr; } }
+
+.tp-notes { list-style: none; padding: 0; margin: 0; font-family: ui-monospace, monospace; font-size: 0.8rem; max-height: 320px; overflow: auto; }
+.tp-notes li { padding: 2px 6px; border-left: 4px solid transparent; }
+
+/* Color por tensión: limpia → tensa */
+.tp-t0 { border-color: #4caf50 !important; }
+.tp-t1 { border-color: #cddc39 !important; }
+.tp-t2 { border-color: #ff9800 !important; }
+.tp-t3 { border-color: #f44336 !important; }
+
+.tp-cal { display: grid; grid-template-columns: auto auto; gap: 2px 12px; font-size: 0.85rem; margin: 0; }
+.tp-cal dd { margin: 0; font-family: ui-monospace, monospace; }
+
+.tp-legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.tp-legend button { text-align: left; width: 100%; padding: 6px 8px; }
