@@ -1,75 +1,48 @@
-# React + TypeScript + Vite
+# Socotlalli
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> Earth's data, for everyone who listens. (Replace with the final one-line pitch.)
 
-Currently, two official plugins are available:
+**Live demo:** https://socotlalli-nasa-space-apps-2026.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Team:** Socoteam · NASA Space Apps Challenge 2026, Ensenada · Challenge: The Earth Information Jukebox
 
-## React Compiler
+![Screenshot of the interface](docs/screenshot.png)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Summary
+TODO: problem, solution and who it is for, in one paragraph, no jargon.
 
-## Expanding the ESLint configuration
+## How to use it
+1. TODO: choose a disc
+2. TODO: press play
+3. TODO: switch listening mode
+4. TODO: keyboard shortcuts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How it works
+TODO: the four-step flow (Python script → disc.json → React interface → Tone.js audio engine) and the image-to-music mapping table.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Musical decisions
+TODO: 5 to 8 bullets explaining why each rule exists (scale, tension, timbres).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Accessibility
+TODO: 5 bullets with what was implemented and the real test results.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Data and limits
+TODO: which visualizations were used, grid resolution, what the project does not measure.
 
+## Run it locally
+```bash
+npm install
+npm run dev
 ```
+TODO: add the command to run the Python pipeline.
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Credits and licenses
+| Item | Author | License | Link |
+|------|--------|---------|------|
+| TODO | TODO | TODO | TODO |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Use of AI
+TODO: which tools were used, for what, and in which files.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+## Team
+Socoteam
