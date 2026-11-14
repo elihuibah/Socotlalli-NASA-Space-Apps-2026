@@ -78,6 +78,12 @@ SOURCES = {
         "colorbar": "dyamondCbar_6-27-2024a.png",
         "frame": "frames/8192x4096_2x1_30p/soscomp_1-29-2025a_pngs/soscomp_1-29-2025a.{n:05d}.png",
     },
+    # Imagen fija (un solo fotograma): mapa plano completo, estirado a 16:9.
+    "aerosols": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a005600/a005669/",
+        "colorbar": "Aerosols_cbar.png",
+        "stills": {"2025-08-19": "Aerosols_2025-08-19T20_00_00_3840x2160.png"},
+    },
 }
 
 
@@ -97,8 +103,13 @@ def main() -> None:
     out = RAW / disc_id
     out.mkdir(parents=True, exist_ok=True)
 
-    fetch(src["base"] + src["dates"], out / "dates.txt")
     fetch(src["base"] + src["colorbar"], out / "colorbar.png")
+    if "stills" in src:  # imágenes fijas: la fecha viene en la configuración
+        for date, name in src["stills"].items():
+            fetch(src["base"] + name, out / f"{date}.{name.rsplit('.', 1)[1]}")
+        print(f"OK: {len(src['stills'])} fotogramas en {out}")
+        return
+    fetch(src["base"] + src["dates"], out / "dates.txt")
     picks = src["pick"](src["read_dates"]((out / "dates.txt").read_text()))
     ext = src["frame"].rsplit(".", 1)[1]
     for n, d in picks:
