@@ -1,0 +1,178 @@
+
+:root {
+  --desk: #8a5a3c;
+  --wood: #4a2a1d;
+  --wood-dark: #2e1810;
+  --metal: #c9c9c9;
+  --panel: #3a3a3a;
+  --vinyl: #0d0d0d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.desk {
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--desk);
+}
+
+.turntable {
+  display: flex;
+  gap: 40px;
+  padding: 30px;
+  background: linear-gradient(135deg, var(--wood), var(--wood-dark));
+  border-radius: 6px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.platter {
+  position: relative;
+  width: 360px;
+  height: 360px;
+}
+
+.vinyl {
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    #1b1b1b 0 2px,
+    var(--vinyl) 2px 4px
+  );
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+}
+
+.vinyl.spinning {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.label {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--vinyl) 0 4px,
+    #b9a98d 5px 100%
+  );
+}
+
+.tonearm {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  transform-origin: 0 0;
+  transform: rotate(12deg);
+  transition: transform 0.8s ease;
+}
+
+.tonearm.on {
+  transform: rotate(-30deg);
+}
+
+.pivot {
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--metal);
+  border: 8px solid #eee;
+  box-shadow: inset 0 0 0 6px #111;
+}
+
+.arm {
+  position: absolute;
+  top: 0;
+  left: -2px;
+  width: 4px;
+  height: 260px;
+  background: var(--metal);
+}
+
+.head {
+  position: absolute;
+  top: 250px;
+  left: -8px;
+  width: 16px;
+  height: 30px;
+  background: #777;
+  border-radius: 2px;
+}
+
+.speaker {
+  width: 200px;
+  height: 360px;
+  padding: 14px 14px 10px;
+  background: var(--panel);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grille {
+  flex: 1;
+  background-color: #222;
+  background-image: radial-gradient(
+    circle,
+    #8a8a8a 1.5px,
+    transparent 2px
+  );
+  background-size: 7px 7px;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #999;
+  background: #555;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #777;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .turntable {
+    transform: scale(0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vinyl.spinning {
+    animation: none;
+  }
+
+  .tonearm {
+    transition: none;
+  }
+}
