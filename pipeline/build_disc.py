@@ -34,9 +34,11 @@ from grid import to_grid
 #   categories: leyenda de colores fijos (nombre -> RGB) en vez de escala; cada frame
 #            lleva "layers" con un valor por categoría y values es la suma (0..1)
 #   layer_names: nombre de cada categoría para el texto y la interfaz
+#   accent:  color de acento del disco para la interfaz, tomado de la leyenda de su visualización
 DISCS = {
     "sst": {
         "title": "Temperatura del mar",
+        "accent": "#3371eb",   # azul del extremo frío de su barra
         "units": "°C",
         "measure": "Temperatura de la superficie del mar, promedio de la celda",
         "scale": (0.0, 32.0),
@@ -49,6 +51,7 @@ DISCS = {
     },
     "co2": {
         "title": "Dióxido de carbono",
+        "accent": "#e06926",   # naranja de su barra (~440 ppm)
         # La mitad de los píxeles pintados está en ~431 ppm, así que leer los ppm deja el disco
         # casi plano. Se usa el área: qué parte de la celda tiene CO2 acumulado (>= ~430 ppm).
         "units": "%",
@@ -69,6 +72,7 @@ DISCS = {
     },
     "aerosols": {
         "title": "Aerosoles",
+        "accent": "#c19adc",   # lila del polvo en su leyenda
         "units": "",
         "measure": "Intensidad de aerosoles en la celda (0 a 1), sumando los 4 tipos; "
                    "layers trae el valor de cada tipo",
@@ -184,6 +188,7 @@ def main() -> None:
         "title": cfg["title"],
         "units": cfg["units"],
         "measure": cfg["measure"],
+        "accent": cfg["accent"],
         "range": list(cfg["range"]),
         "credit": cfg["credit"],
         "grid": {"cols": COLS, "rows": ROWS},
