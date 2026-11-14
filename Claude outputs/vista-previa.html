@@ -1,0 +1,84 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Tlalli</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#2f2133}.tlalli-svg{width:min(420px,80vw)}/* Animaciones de Tlalli. Cada capa del SVG tiene un id; aquí solo se mueven. */
+.tlalli-svg svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tlalli-svg #tlalli { animation: tlalli-flotar 5s ease-in-out infinite; }
+.tlalli-svg #ojo-izquierdo, .tlalli-svg #ojo-derecho {
+  transform-box: fill-box; transform-origin: center; animation: tlalli-parpadeo 5.5s infinite;
+}
+.tlalli-svg #nubes { animation: tlalli-nubes 9s ease-in-out infinite alternate; }
+.tlalli-svg #brillo { animation: tlalli-brillo 5s ease-in-out infinite; }
+/* Estado "hablando" o "escuchando": agrega la clase desde React */
+.tlalli-svg.is-listening #tlalli { animation-duration: 1.2s; }
+
+@keyframes tlalli-flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes tlalli-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes tlalli-nubes { from { transform: translateX(-7px); } to { transform: translateX(7px); } }
+@keyframes tlalli-brillo { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+
+@media (prefers-reduced-motion: reduce) { .tlalli-svg * { animation: none !important; } }
+html[data-motion='reduce'] .tlalli-svg * { animation: none !important; }</style>
+<div class="tlalli-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Tlalli, la Tierra con ojos grandes">
+  <defs>
+    <radialGradient id="tlalli-oceano-g" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#7FA6DE"/><stop offset="1" stop-color="#4A6DB5"/></radialGradient>
+    <radialGradient id="tlalli-sombra-g" cx=".36" cy=".3" r=".78"><stop offset=".55" stop-color="#1A1320" stop-opacity="0"/><stop offset="1" stop-color="#1A1320" stop-opacity=".42"/></radialGradient>
+    <clipPath id="tlalli-recorte"><circle cx="200" cy="200" r="150"/></clipPath>
+  </defs>
+  <g id="tlalli">
+    <g id="arboles-borde">
+      <g id="arbol-1" transform="translate(70 125) rotate(-60) scale(1.0)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-2" transform="translate(137 64) rotate(-25) scale(0.8)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-3" transform="translate(275 70) rotate(30) scale(1.0)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-4" transform="translate(336 137) rotate(65) scale(0.8)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-5" transform="translate(336 263) rotate(115) scale(1.0)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-6" transform="translate(251 341) rotate(160) scale(0.8)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-7" transform="translate(125 330) rotate(210) scale(1.0)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-8" transform="translate(59 251) rotate(250) scale(0.8)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+    </g>
+    <g id="esfera" clip-path="url(#tlalli-recorte)">
+      <circle id="oceano" cx="200" cy="200" r="150" fill="url(#tlalli-oceano-g)"/>
+      <g id="olas" fill="none" stroke="#A9C6EE" stroke-opacity=".55" stroke-width="3" stroke-linecap="round">
+        <path d="M70 200 q14 -10 28 0 t28 0"/><path d="M150 268 q14 -10 28 0 t28 0"/><path d="M235 262 q14 -10 28 0 t28 0"/>
+        <path d="M100 120 q12 -9 24 0 t24 0"/><path d="M215 345 q12 -9 24 0 t24 0"/><path d="M290 205 q10 -8 20 0 t20 0"/>
+      </g>
+      <g id="continentes">
+      <g id="continente-norte">
+        <path d="M215.0 62.0 C255.0 50.0 315.0 78.0 335.0 118.0 C348.0 146.0 338.0 172.0 312.0 170.0 C292.0 168.0 282.0 150.0 262.0 152.0 C240.0 154.0 226.0 140.0 212.0 124.0 C196.0 106.0 190.0 72.0 215.0 62.0Z" fill="#A5C2A7" stroke="#546246" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M225.9 74.8 C257.1 65.5 303.9 87.3 319.5 118.5 C329.6 140.3 321.8 160.6 301.6 159.1 C286.0 157.5 278.2 143.5 262.6 145.0 C245.4 146.6 234.5 135.7 223.6 123.2 C211.1 109.1 206.4 82.6 225.9 74.8Z" fill="none" stroke="#F1F1EC" stroke-opacity=".75" stroke-width="1.6" stroke-dasharray="5 5" stroke-linecap="round"/>
+      </g>
+      <g id="continente-sur">
+        <path d="M60.0 240.0 C80.0 232.0 104.0 246.0 112.0 268.0 C120.0 290.0 140.0 300.0 150.0 322.0 C156.0 338.0 140.0 352.0 120.0 346.0 C90.0 338.0 62.0 300.0 55.0 270.0 C52.0 255.0 52.0 244.0 60.0 240.0Z" fill="#A5C2A7" stroke="#546246" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M68.2 250.2 C83.8 243.9 102.5 254.9 108.7 272.0 C115.0 289.2 130.6 297.0 138.4 314.1 C143.0 326.6 130.6 337.5 115.0 332.9 C91.6 326.6 69.7 297.0 64.3 273.6 C61.9 261.9 61.9 253.3 68.2 250.2Z" fill="none" stroke="#F1F1EC" stroke-opacity=".75" stroke-width="1.6" stroke-dasharray="5 5" stroke-linecap="round"/>
+      </g>
+      <g id="isla">
+        <path d="M270.0 290.0 C290.0 280.0 318.0 286.0 322.0 304.0 C325.0 320.0 305.0 334.0 286.0 330.0 C270.0 327.0 258.0 300.0 270.0 290.0Z" fill="#A5C2A7" stroke="#546246" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M274.7 293.5 C290.3 285.7 312.1 290.4 315.3 304.5 C317.6 316.9 302.0 327.9 287.2 324.7 C274.7 322.4 265.3 301.3 274.7 293.5Z" fill="none" stroke="#F1F1EC" stroke-opacity=".75" stroke-width="1.6" stroke-dasharray="5 5" stroke-linecap="round"/>
+      </g>
+      </g>
+      <g id="arboles-interior">
+      <g id="arbol-interior-1" transform="translate(250 95) rotate(0) scale(0.5)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-interior-2" transform="translate(300 125) rotate(0) scale(0.5)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-interior-3" transform="translate(95 290) rotate(0) scale(0.5)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-interior-4" transform="translate(125 325) rotate(0) scale(0.5)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      <g id="arbol-interior-5" transform="translate(292 308) rotate(0) scale(0.5)"><g fill="#546246"><circle cx="0" cy="0" r="13"/><circle cx="-11" cy="5" r="9"/><circle cx="11" cy="5" r="9"/><circle cx="-5" cy="-9" r="9"/><circle cx="6" cy="-9" r="8"/></g><g fill="#8DB590"><circle cx="-2" cy="-3" r="10.4"/><circle cx="-13" cy="2" r="7.2"/><circle cx="9" cy="2" r="7.2"/><circle cx="-7" cy="-12" r="7.2"/><circle cx="4" cy="-12" r="6.4"/></g></g>
+      </g>
+      <circle id="sombra" cx="200" cy="200" r="150" fill="url(#tlalli-sombra-g)"/>
+      <ellipse id="brillo" cx="140" cy="118" rx="62" ry="34" fill="#FFFFFF" fill-opacity=".14" transform="rotate(-32 140 118)"/>
+    </g>
+    <g id="nubes">
+      <g id="nube-1" transform="translate(88 168) scale(1.15)"><g fill="#C9CDD8" transform="translate(0 5)"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g><g fill="#F6F6F1"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g></g>
+      <g id="nube-2" transform="translate(312 238) scale(1.0)"><g fill="#C9CDD8" transform="translate(0 5)"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g><g fill="#F6F6F1"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g></g>
+      <g id="nube-3" transform="translate(196 312) scale(0.9)"><g fill="#C9CDD8" transform="translate(0 5)"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g><g fill="#F6F6F1"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g></g>
+      <g id="nube-4" transform="translate(150 100) scale(0.8)"><g fill="#C9CDD8" transform="translate(0 5)"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g><g fill="#F6F6F1"><ellipse cx="0" cy="2" rx="27" ry="13"/><circle cx="-12" cy="-7" r="12"/><circle cx="6" cy="-11" r="14"/><circle cx="19" cy="-3" r="10"/></g></g>
+    </g>
+    <g id="ojos">
+      <g id="ojo-izquierdo">
+        <ellipse cx="162" cy="215" rx="31" ry="40" fill="#F4E2A4"/>
+        <ellipse cx="162" cy="215" rx="20" ry="29" fill="#1A1320"/>
+      </g>
+      <g id="ojo-derecho">
+        <ellipse cx="238" cy="215" rx="31" ry="40" fill="#F4E2A4"/>
+        <ellipse cx="238" cy="215" rx="20" ry="29" fill="#1A1320"/>
+      </g>
+    </g>
+  </g>
+</svg></div></html>

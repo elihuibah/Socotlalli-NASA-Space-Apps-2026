@@ -1,111 +1,102 @@
+/* Socotlalli · tokens y base
+   Dirección: "cabaña en órbita". Todo es fieltro: fibras, bordes afelpados, costuras y sombras suaves.
+   Una sola familia tipográfica: Urbanist. */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  color-scheme: dark;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* El lugar */
+  --nogal: #4a382e; /* pared de tablones */
+  --nogal-oscuro: #2e221c; /* juntas, vigas y sombras de fieltro */
+  --pino: #b98f63; /* repisa, consola y marco de la ventana */
+  --pino-canto: #8a6644;
+  --noche: #16223d; /* cielo en la ventana */
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Texto */
+  --crema: #f1f1ec; /* texto principal y globos (≈ 9:1 sobre nogal) */
+  --arena: #d9cdbd; /* texto secundario (≈ 6.6:1 sobre nogal) */
+  --tinta: #2e221c; /* texto sobre crema y amarillo */
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Acento único: el amarillo de los ojos de Tlalli */
+  --amarillo: #f4e2a4;
+
+  /* Tlalli y detalles tejidos */
+  --oceano: #7fa6de;
+  --oceano-2: #4a6db5;
+  --salvia: #a5c2a7;
+  --musgo: #546246;
+  --terracota: #c9826b;
+  --coral: #e3a08a; /* solo para datos: tensión y extremos */
+
+  /* Mosaico de fibras de fieltro (imagen horneada; se mezcla con soft-light sobre cada color) */
+  --tela-mosaico: url('./assets/fieltro/mosaico.webp');
+
+  --header-h: 60px;
+  --font: 'Urbanist Variable', 'Urbanist', sans-serif;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --ease: cubic-bezier(0.3, 0.7, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (min-width: 900px) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --gutter: clamp(40px, 5vw, 80px);
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+/* Ventanas bajitas (laptops con zoom): todo un poco más compacto para que quepa sin desplazarse */
+@media (min-width: 900px) and (max-height: 700px) {
+  html {
+    font-size: 92%;
+  }
+}
+
+html[data-text='l'] {
+  font-size: 118%;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 body {
   margin: 0;
+  background: var(--nogal);
+  color: var(--crema);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+h2,
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button,
+input {
+  font: inherit;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+:focus-visible {
+  outline: 3px solid var(--amarillo);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Sin movimiento: preferencia del sistema o del panel de accesibilidad */
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation: none !important;
+  transition: none !important;
 }
