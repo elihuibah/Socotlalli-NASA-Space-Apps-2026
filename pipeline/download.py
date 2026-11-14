@@ -26,6 +26,12 @@ def dates_numbered(txt: str) -> list[tuple[int, datetime]]:
     return rows
 
 
+def dates_by_line(txt: str) -> list[tuple[int, datetime]]:
+    """Una fecha por línea ('Jan 14, 2020'); la línea 1 es el fotograma 1."""
+    return [(i, datetime.strptime(line.strip(), "%b %d, %Y"))
+            for i, line in enumerate(txt.splitlines(), start=1) if line.strip()]
+
+
 # --- Estrategias para elegir fotogramas: devuelven [(número, fecha)] ---
 
 def pick_monthly(rows: list[tuple[int, datetime]]) -> list[tuple[int, datetime]]:
@@ -39,6 +45,19 @@ def pick_monthly(rows: list[tuple[int, datetime]]) -> list[tuple[int, datetime]]
     return [v for v in best.values() if abs(v[1].day - 15) <= 2]
 
 
+def pick_every_days(step: int):
+    """Un fotograma cada `step` días: el de en medio de cada día, para comparar siempre
+    la misma hora y que el ciclo día/noche no se confunda con un cambio entre fechas.
+    Descarta días incompletos (menos de 12 fotogramas, como el primero y el último)."""
+    def pick(rows):
+        days: dict[datetime, list[int]] = {}
+        for n, d in rows:
+            days.setdefault(d, []).append(n)
+        full = [(d, ns) for d, ns in sorted(days.items()) if len(ns) >= 12]
+        return [(ns[len(ns) // 2], d) for d, ns in full[::step]]
+    return pick
+
+
 SOURCES = {
     "sst": {
         "base": "https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/",
@@ -48,6 +67,16 @@ SOURCES = {
         "label": "%Y-%m",
         "colorbar": "sst_ecco2_cbar.png",
         "frame": "frames/2048x1024_1x1_30p/orig/flat_global_ecco2_2028x1024.{n}.tif",
+    },
+    # Versión para esfera (mapa plano 2:1) de la visualización 5196, que gira alrededor del globo.
+    "co2": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005436/",
+        "dates": "dyamond_timestamps.txt",
+        "read_dates": dates_by_line,
+        "pick": pick_every_days(4),
+        "label": "%Y-%m-%d",
+        "colorbar": "dyamondCbar_6-27-2024a.png",
+        "frame": "frames/8192x4096_2x1_30p/soscomp_1-29-2025a_pngs/soscomp_1-29-2025a.{n:05d}.png",
     },
 }
 
