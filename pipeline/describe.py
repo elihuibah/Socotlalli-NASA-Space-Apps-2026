@@ -95,3 +95,17 @@ def sentence(date: str, values_real: np.ndarray, diff_real: np.ndarray,
     above, below = phrase or ("{v:.1f} {units} sobre lo normal", "{v:.1f} {units} bajo lo normal")
     amount = (above if d[i] > 0 else below).format(v=abs(d[i]), units=units)
     return f"{head}; mayor cambio en {PLACES[place](lat, lon)}, {amount}"
+
+
+def sentence_layers(date: str, values: np.ndarray, layers: dict[str, np.ndarray],
+                    names: dict[str, str], mask: np.ndarray, place: str = "land") -> str:
+    """Frase para discos por categoría (aerosoles): qué tipo predomina en el mapa y
+    dónde está la mayor carga. values y layers: 512 celdas de 0 a 1; names: id -> nombre."""
+    label = date_label(date)
+    totals = {k: float(v[mask].mean()) for k, v in layers.items()}
+    main = max(totals, key=totals.get)
+    i = int(np.argmax(np.where(mask, values, -1)))
+    top = max(layers, key=lambda k: layers[k][i])
+    lat, lon = lat_lon(*col_row(i))
+    return (f"{label}: en todo el mapa predomina {names[main]}; "
+            f"la mayor carga está en {PLACES[place](lat, lon)}, sobre todo {names[top]}")
