@@ -66,7 +66,28 @@ def land(lat: float, lon: float) -> str:
     return f"{name} ({coords(lat, lon)})"
 
 
-PLACES = {"ocean": ocean, "land": land}
+_SEA: list[int] | None = None
+
+
+def auto(lat: float, lon: float) -> str:
+    """Nombra la celda como océano o como tierra según la máscara del disco de temperatura
+    del mar (celda con dato = mar). Para discos con dato en mar y en tierra, como aerosoles."""
+    global _SEA
+    if _SEA is None:
+        import json
+        from contract import DISCS_DIR
+        path = DISCS_DIR / "sst.json"
+        _SEA = json.loads(path.read_text(encoding="utf-8"))["mask"] if path.exists() else []
+    if not _SEA:
+        return f"cerca de {coords(lat, lon)}"
+    col = min(COLS - 1, int((lon + 180) / 360 * COLS))
+    row = min(ROWS - 1, int((90 - lat) / 180 * ROWS))
+    if _SEA[row * COLS + col]:
+        return f"{ocean(lat, lon)} ({coords(lat, lon)})"
+    return land(lat, lon)
+
+
+PLACES = {"ocean": ocean, "land": land, "auto": auto}
 
 
 def date_label(date: str) -> str:
