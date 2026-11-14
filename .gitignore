@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Pipeline de datos (Python)
+__pycache__/
+pipeline/raw/
