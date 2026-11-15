@@ -1,0 +1,201 @@
+/* El telón de entrada: una cortina de fieltro que tapa toda la página mientras carga
+   y luego se desliza entera hacia la izquierda. Tlalli espera encima, a la derecha, y al
+   abrirse va saltando hasta su lugar. Solo se animan transformaciones y opacidad. */
+.telon {
+  --telon: #2a1e27; /* entre morado y café muy oscuro */
+  --abre: 1.05s; /* lo que tarda la cortina en irse */
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* por encima del encabezado y de los vinilos en vuelo */
+  overflow: hidden;
+  color: var(--crema);
+}
+.telon-cortina {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  will-change: transform;
+}
+
+/* ---------- La tela: tiras verticales que hacen de pliegues ---------- */
+.telon-tela {
+  position: absolute;
+  inset: 0;
+}
+.telon-pliegue {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--i) * 100% / var(--n));
+  width: calc(100% / var(--n) + 1px); /* 1 px de traslape: sin rendijas entre tiras */
+  background-color: var(--telon);
+  /* de arriba abajo: dobladillos cosidos, sombra del pliegue, fibras de fieltro */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(241, 241, 236, 0.3) 0 9px, transparent 9px 17px),
+    repeating-linear-gradient(90deg, rgba(241, 241, 236, 0.3) 0 9px, transparent 9px 17px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.42), rgba(255, 255, 255, 0.07) 38%, rgba(255, 255, 255, 0.02) 62%, rgba(0, 0, 0, 0.36)),
+    var(--tela-mosaico);
+  background-size: 100% 2px, 100% 2px, 100% 100%, auto;
+  background-position: 0 14px, 0 calc(100% - 14px), 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-blend-mode: normal, normal, normal, soft-light;
+}
+
+/* ---------- Título, lema y barra de carga ---------- */
+.telon-contenido {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+}
+.telon-titulo {
+  font-size: clamp(3rem, 10vw, 7.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.telon-lema {
+  font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+  font-weight: 600;
+  color: var(--amarillo);
+}
+.telon-carga {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: clamp(22px, 5vh, 44px);
+  transition: opacity 0.3s ease;
+}
+.telon-barra {
+  width: clamp(220px, 34vw, 420px);
+  height: 16px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.telon-barra-avance {
+  display: block;
+  height: 100%;
+  min-width: 10px;
+  border-radius: 999px;
+  background-color: var(--amarillo);
+  background-image: var(--tela-mosaico);
+  background-blend-mode: soft-light;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -2px 2px rgba(20, 12, 8, 0.3);
+  transition: width 0.3s ease-out;
+}
+.telon-porcentaje {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--arena);
+}
+.telon-aviso {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Ya cargó: la barra se desvanece (conserva su sitio para que el título no salte) */
+.telon.is-listo .telon-carga,
+.telon.is-abriendo .telon-carga {
+  opacity: 0;
+}
+
+/* ---------- Tlalli sobre el telón ---------- */
+/* Celular: pequeña, abajo a la derecha, para no tapar el título */
+.telon-tlalli {
+  position: absolute;
+  right: 20px;
+  bottom: 28px;
+  width: 96px;
+  height: 96px;
+  transform-origin: top left; /* Telon.tsx la lleva hasta su lugar con translate + scale */
+  will-change: transform;
+}
+@media (min-width: 900px) {
+  .telon-tlalli {
+    --tlalli: min(clamp(200px, 21vw, 320px), 38vh); /* mismo tamaño que en la cabaña */
+    right: clamp(32px, 7vw, 120px);
+    bottom: auto;
+    top: calc(50% - var(--tlalli) / 2);
+    width: var(--tlalli);
+    height: var(--tlalli);
+  }
+}
+/* Entra dando un salto desde fuera de la pantalla, por la derecha */
+.telon-tlalli-salto {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 90%;
+  animation: telon-tlalli-entra 0.7s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+}
+.telon-tlalli .tlalli-fig {
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+@keyframes telon-tlalli-entra {
+  0% {
+    transform: translate(60vw, 0) rotate(14deg);
+  }
+  55% {
+    transform: translate(6%, -14%) rotate(-4deg);
+  }
+  78% {
+    transform: translate(0, 0) scale(1.05, 0.94);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* ---------- Se abre: la cortina se va a la izquierda y Tlalli salta a su lugar ---------- */
+.telon.is-abriendo {
+  pointer-events: none; /* la cabaña ya se puede usar mientras termina de salir */
+}
+.telon.is-abriendo .telon-cortina {
+  /* toma impulso despacio y sale rápido, como al correr una cortina de un jalón */
+  animation: telon-sale var(--abre) cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+@keyframes telon-sale {
+  to {
+    transform: translateX(-104%);
+  }
+}
+/* Tres saltitos cada vez más bajos, inclinada hacia donde va; al caer se aplasta un poco */
+.telon.is-abriendo .telon-tlalli-salto {
+  animation: telon-tlalli-salta 1.15s linear both;
+}
+.telon.is-abriendo .tlalli-fig {
+  animation: none; /* deja de flotar mientras salta */
+}
+@keyframes telon-tlalli-salta {
+  0% { transform: translateY(0) scale(1.06, 0.92); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  17% { transform: translateY(-20%) rotate(-7deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  36% { transform: translateY(0) rotate(-4deg) scale(1.07, 0.91); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  52% { transform: translateY(-13%) rotate(-5deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  68% { transform: translateY(0) rotate(-2deg) scale(1.05, 0.94); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  81% { transform: translateY(-6%) rotate(-2deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  93% { transform: translateY(0) scale(1.03, 0.97); }
+  100% { transform: none; }
+}
+
+/* Mientras hay telón, la Tlalli de la cabaña espera oculta y quieta: la del telón llega a
+   su sitio exacto y entonces se intercambian (App.tsx pone y quita .con-telon). */
+.cabana.con-telon .tlalli-lugar {
+  visibility: hidden;
+}
+.cabana.con-telon .tlalli-lugar .tlalli-fig {
+  animation: none;
+}
