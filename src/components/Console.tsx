@@ -44,6 +44,7 @@ export function NowPlaying(props: {
   frame: number
   onToggle: () => void
   onEject: () => void
+  onLearn: (d: Disc) => void
 }) {
   const { disc, playing, frame } = props
   if (!disc) {
@@ -67,6 +68,9 @@ export function NowPlaying(props: {
       <div className="suena-acciones">
         <button type="button" className="btn-redondo fieltro cosido" onClick={props.onToggle} aria-label={playing ? 'Pausar' : 'Reanudar'}>
           {playing ? <IconPause /> : <IconPlay />}
+        </button>
+        <button type="button" className="btn-texto btn-conocer" onClick={() => props.onLearn(disc)}>
+          Conocer más <span aria-hidden="true">→</span>
         </button>
         <button type="button" className="btn-texto" onClick={props.onEject}>
           Guardar el disco
