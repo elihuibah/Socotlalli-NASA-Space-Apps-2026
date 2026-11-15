@@ -78,6 +78,7 @@ export function DiscInfo(props: {
   playing: boolean
   onPlace: (d: Disc) => void
   onToggle: () => void
+  onLearn: (d: Disc) => void
 }) {
   const { disc, isCurrent, playing } = props
   if (!disc) {
@@ -106,8 +107,14 @@ export function DiscInfo(props: {
             Poner este disco
           </button>
         )}
+        {isCurrent && (
+          <button type="button" className="btn-texto btn-conocer" onClick={() => props.onLearn(disc)}>
+            Conocer más <span aria-hidden="true">→</span>
+          </button>
+        )}
         <p className="ficha-datos">
-          {disc.instrument} · {disc.frames.length} fotogramas · datos de ejemplo
+          {disc.instrument} · {disc.frames.length} {disc.id === 'forest' ? 'vistas del globo' : disc.frames.length === 1 ? 'fotograma' : 'fotogramas'} ·{' '}
+          {disc.real ? 'datos de la NASA' : 'cargando datos…'}
         </p>
       </div>
     </div>

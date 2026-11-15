@@ -2,7 +2,7 @@
 // La página no dibuja estos SVG en vivo: se "hornean" una vez con el filtro #fieltro
 // y se guardan como imágenes en src/assets/fieltro (ver components/Felt.tsx).
 // Si cambian un dibujo aquí, hay que volver a hornear su imagen.
-import type { DiscId } from '../data/discs'
+import type { FeltArt } from '../data/discs'
 
 const stitch = {
   fill: 'none',
@@ -14,7 +14,7 @@ const stitch = {
 } as const
 
 /** Portada de cada vinilo. Cuando Datos entregue los fotogramas del EIC, aquí va la imagen. */
-export function CoverArt({ id }: { id: DiscId }) {
+export function CoverArt({ id }: { id: FeltArt }) {
   return (
     <svg className="funda-arte" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
       {id === 'sst' && (

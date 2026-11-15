@@ -1,0 +1,762 @@
+/* El pizarrón: la otra mitad de la cabaña, a la derecha del buró.
+   Al pulsar «Conocer más», Tlalli camina en su lugar mientras la cabaña se desliza a la
+   izquierda (como en un juego de plataformas), así parece que va hacia la derecha. */
+
+/* ---------- El paseo ---------- */
+.cab-main {
+  grid-template-rows: minmax(0, 1fr);
+}
+/* Tlalli y sus globos quedan por encima del buró cuando este pasa deslizándose */
+.lado-tlalli {
+  position: relative;
+  z-index: 2;
+}
+.escenario {
+  --paseo: 1.4s; /* igual que WALK_MS en App.tsx */
+  --paseo-curva: cubic-bezier(0.45, 0, 0.25, 1);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+/* El buró y el pizarrón ocupan la misma celda; solo uno está a la vista. */
+.escenario > * {
+  grid-area: 1 / 1;
+  min-height: 0;
+  /* Se ve de inmediato al entrar; al salir se oculta cuando termina de deslizarse */
+  transition: transform var(--paseo) var(--paseo-curva), visibility 0s linear 0s;
+}
+.lado-pizarron,
+.vista-pizarron .lado-mueble {
+  visibility: hidden;
+  transition: transform var(--paseo) var(--paseo-curva), visibility 0s linear var(--paseo);
+}
+.lado-pizarron {
+  transform: translateX(100vw);
+}
+.vista-pizarron .lado-mueble {
+  transform: translateX(-100vw);
+}
+.vista-pizarron .lado-pizarron {
+  visibility: visible;
+  transform: none;
+  transition: transform var(--paseo) var(--paseo-curva), visibility 0s linear 0s;
+}
+/* La ventana es de la sala: se va con ella. El tapete se queda: Tlalli está parado encima. */
+.ventana {
+  transition: transform 1.4s cubic-bezier(0.45, 0, 0.25, 1);
+}
+.vista-pizarron .ventana {
+  transform: translateX(-100vw);
+}
+
+/* Tlalli da unos pasos hacia donde va y regresa a su lugar mientras la cabaña se mueve */
+.is-paseando-derecha .tlalli-lugar {
+  animation: tlalli-avanza 1.4s ease-in-out;
+}
+.is-paseando-izquierda .tlalli-lugar {
+  animation: tlalli-avanza 1.4s ease-in-out reverse;
+}
+@keyframes tlalli-avanza {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(clamp(18px, 3vw, 48px));
+  }
+}
+
+/* Al caminar le salen dos pies de fieltro y da saltitos */
+.tlalli-pie {
+  --tela: var(--musgo);
+  position: absolute;
+  bottom: 3%;
+  width: 14%;
+  height: 10%;
+  border-radius: 50% 50% 42% 42%;
+  background-color: var(--tela);
+  background-image: var(--tela-mosaico);
+  background-blend-mode: soft-light;
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.2), inset 0 -2px 3px rgba(20, 12, 8, 0.35), 0 3px 4px rgba(20, 12, 8, 0.45);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.6);
+  transition: opacity 0.2s, transform 0.25s var(--ease);
+}
+.tlalli-pie.is-izq {
+  left: 33%;
+}
+.tlalli-pie.is-der {
+  left: 53%;
+}
+.tlalli-fig.is-walking .tlalli-pie {
+  opacity: 1;
+  transform: none;
+  animation: tlalli-paso 0.44s ease-in-out infinite alternate;
+}
+.tlalli-fig.is-walking .tlalli-pie.is-der {
+  animation-delay: -0.44s;
+}
+.tlalli-fig.is-walking {
+  --inclina: 5deg;
+  animation: tlalli-caminar 0.44s ease-in-out infinite;
+}
+.tlalli-fig.is-walking.is-izquierda {
+  --inclina: -5deg;
+}
+@keyframes tlalli-caminar {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--inclina));
+  }
+  50% {
+    transform: translateY(-12px) rotate(calc(var(--inclina) * 0.4));
+  }
+}
+@keyframes tlalli-paso {
+  from {
+    transform: translate(-18%, 0) rotate(-10deg);
+  }
+  to {
+    transform: translate(18%, -22%) rotate(10deg);
+  }
+}
+
+/* ---------- Botón «Conocer más» en la ficha ---------- */
+.btn-conocer {
+  color: var(--amarillo);
+}
+
+/* ---------- El pizarrón ---------- */
+.lado-pizarron {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: clamp(26px, 4.5vh, 48px);
+}
+.piz-volver {
+  min-height: 32px;
+  color: var(--amarillo);
+}
+/* Marco de pino y pizarra de fieltro verde */
+.piz-marco {
+  --tela: var(--pino);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 0;
+  border-radius: 22px;
+}
+.pizarron {
+  --tela: #2f4a3b;
+  --hilo: rgba(241, 241, 236, 0.28);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.2vh, 10px);
+  padding: clamp(12px, 2vh, 24px) clamp(16px, 2vw, 28px) clamp(10px, 1.6vh, 18px);
+  border-radius: 12px;
+}
+.pizarron::before {
+  box-shadow: inset 0 4px 10px rgba(10, 6, 4, 0.55), inset 0 -2px 4px rgba(255, 255, 255, 0.08);
+}
+.piz-repisa {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 22px;
+  padding: 0 28px 5px;
+}
+.gis {
+  width: 30px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--crema);
+  box-shadow: 0 2px 2px rgba(20, 12, 8, 0.4);
+}
+.gis.is-amarillo {
+  width: 22px;
+  background: var(--amarillo);
+}
+.borrador {
+  width: 46px;
+  height: 13px;
+  margin-left: 6px;
+  border-radius: 4px;
+  background: var(--terracota);
+  box-shadow: inset 0 -5px 0 var(--nogal-oscuro), 0 2px 2px rgba(20, 12, 8, 0.4);
+}
+
+/* Encabezado: «Op. · variable» y el botón de volver arriba; título y qué mide, en una línea */
+.piz-titulo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 16px;
+}
+.piz-titulo .piz-volver {
+  grid-row: 1;
+  grid-column: 2;
+}
+.piz-titulo-linea {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 14px;
+  min-width: 0;
+}
+.piz-titulo h2 {
+  font-size: clamp(1.3rem, min(2.4vw, 4vh), 2.2rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+.piz-mide {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 0.875rem;
+  color: var(--arena);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.piz-cargando {
+  padding: 30px 0;
+  color: var(--arena);
+}
+.piz-credito {
+  flex: none;
+  margin-top: auto;
+  font-size: 0.6875rem;
+  color: var(--arena);
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.piz-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  /* Mapa | lugar elegido, y abajo una franja con el resumen de todo el mapa */
+  .piz-cuerpo {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 290px);
+    gap: clamp(8px, 1.4vh, 14px) clamp(14px, 2vw, 26px);
+  }
+  .piz-cuerpo .piz-resumen {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+    align-items: start;
+    gap: 2px 20px;
+    padding-top: clamp(6px, 1.2vh, 10px);
+    border-top: 1px dashed rgba(241, 241, 236, 0.25);
+  }
+  .piz-resumen .eyebrow {
+    padding-top: 3px;
+  }
+  .piz-resumen .piz-frase {
+    grid-column: 1 / -1;
+    padding-top: 2px;
+    border-top: 0;
+  }
+}
+.piz-izq {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.1vh, 10px);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Modos del mapa, con su leyenda al lado */
+.piz-fila-modos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+.piz-modos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(10, 6, 4, 0.22);
+}
+.piz-modo {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--arena);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.piz-modo.is-on {
+  background: var(--amarillo);
+  color: var(--tinta);
+}
+
+/* El mapa. .piz-mapa-caja es un contenedor de tamaño: el mapa mide lo más que quepa
+   a lo ancho (100cqw) y a lo alto (100cqh), conservando su proporción. */
+.piz-mapa {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.piz-mapa-caja {
+  min-height: 0;
+}
+.piz-mapa-area {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2;
+  border-radius: 6px;
+  outline: 2px dashed rgba(241, 241, 236, 0.4);
+  outline-offset: 5px;
+  cursor: crosshair;
+  touch-action: manipulation;
+  background: #101a2c;
+}
+.piz-mapa.is-globo .piz-mapa-area {
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  background: #000;
+}
+.piz-mapa-area:focus-visible {
+  outline: 3px solid var(--amarillo);
+}
+.piz-mapa-area img,
+.piz-mapa-area svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+.piz-mapa-area img {
+  object-fit: fill;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.piz-mapa-area img.is-tenue {
+  opacity: 0.3;
+}
+.celda-hover {
+  fill: rgba(241, 241, 236, 0.2);
+  stroke: var(--crema);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+.celda-elegida {
+  fill: rgba(244, 226, 164, 0.18);
+  stroke: var(--amarillo);
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+}
+.piz-alfiler {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--amarillo);
+  box-shadow: 0 0 0 3px rgba(46, 34, 28, 0.7);
+  pointer-events: none;
+}
+.piz-alfiler::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid var(--amarillo);
+  animation: alfiler-pulso 1.8s ease-out infinite;
+}
+@keyframes alfiler-pulso {
+  from {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.piz-leyenda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--arena);
+}
+.piz-escala {
+  flex: none;
+  width: 90px;
+  height: 10px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(241, 241, 236, 0.3);
+}
+
+/* Línea de tiempo */
+.piz-tiempo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding-top: 2px;
+  font-size: 0.875rem;
+}
+.piz-tiempo.is-unico {
+  color: var(--arena);
+}
+.piz-tiempo strong {
+  color: var(--crema);
+}
+.piz-paso {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(241, 241, 236, 0.1);
+  color: var(--crema);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.piz-paso:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.piz-deslizador {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+}
+.piz-deslizador input {
+  flex: 1 1 120px;
+}
+.piz-tiempo-texto {
+  color: var(--arena);
+}
+.piz-deslizador input {
+  min-width: 0;
+  accent-color: var(--amarillo);
+}
+.piz-siguiendo {
+  color: var(--amarillo);
+}
+.piz-seguir {
+  min-height: 38px;
+  color: var(--amarillo);
+}
+
+/* Estadísticas */
+.piz-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  font-size: 0.9375rem;
+}
+.piz-lugar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  background: rgba(241, 241, 236, 0.06);
+  border: 2px dashed rgba(241, 241, 236, 0.24);
+}
+.piz-lugar.is-vacio p:last-child {
+  color: var(--arena);
+}
+.piz-lugar-nombre {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.piz-lugar-detalle,
+.piz-valor-que,
+.piz-mini {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--arena);
+}
+.piz-valor-que {
+  margin-left: 8px;
+  letter-spacing: 0;
+}
+.piz-mini {
+  font-weight: 600;
+}
+.piz-valor {
+  margin-top: 8px;
+  font-size: clamp(1.8rem, 3.6vh, 2.4rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--amarillo);
+}
+.piz-sin-dato {
+  margin-top: 8px;
+  color: var(--arena);
+}
+.piz-anomalia {
+  margin-top: 10px;
+  font-size: 0.875rem;
+}
+.piz-barra {
+  position: relative;
+  display: block;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 4px;
+  background: rgba(241, 241, 236, 0.12);
+}
+.piz-barra-cero {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: rgba(241, 241, 236, 0.6);
+}
+.piz-barra-valor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.piz-barra-valor.is-arriba {
+  background: var(--coral);
+  border-radius: 0 4px 4px 0;
+}
+.piz-barra-valor.is-abajo {
+  background: var(--oceano);
+  border-radius: 4px 0 0 4px;
+}
+.piz-capas,
+.piz-historia {
+  margin-top: 12px;
+}
+.piz-capas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.piz-capas li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 36px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+.piz-capa-nombre {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.piz-capa-barra {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(241, 241, 236, 0.12);
+}
+.piz-capa-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #c19adc;
+}
+.piz-capa-num {
+  text-align: right;
+  font-weight: 700;
+}
+.piz-historia svg {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-top: 4px;
+  color: var(--oceano);
+}
+.piz-historia-fechas {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.piz-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.piz-resumen {
+  padding-top: 2px;
+}
+.piz-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+}
+.piz-cifras dt {
+  font-size: 0.8125rem;
+  color: var(--arena);
+}
+.piz-cifras dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.piz-ir {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--crema);
+  font-size: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(241, 241, 236, 0.5);
+  text-underline-offset: 4px;
+}
+.piz-ir:hover {
+  color: var(--amarillo);
+}
+.piz-ir span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--arena);
+}
+.piz-frase {
+  padding-top: 8px;
+  border-top: 1px dashed rgba(241, 241, 236, 0.25);
+  font-size: 0.8125rem;
+  color: var(--arena);
+}
+
+
+/* ---------- Escritorio: el pizarrón cabe entero, sin desplazarse ----------
+   Mismas condiciones en que .cabana mide el alto de la ventana (cabana.css). */
+@media (min-width: 900px) and (min-height: 600px) {
+  .pizarron {
+    overflow: hidden;
+  }
+  .piz-cuerpo {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .piz-mapa {
+    flex: 1;
+  }
+  /* Si sobra alto (pantallas grandes), el mapa queda centrado en el espacio libre */
+  .piz-mapa-caja {
+    flex: 1;
+    container-type: size;
+    display: flex;
+    align-items: center;
+  }
+  .piz-mapa-area {
+    width: min(100cqw, 200cqh);
+  }
+  .piz-mapa.is-globo .piz-mapa-area {
+    width: min(100cqw, 100cqh);
+  }
+  .piz-fila-modos,
+  .piz-tiempo,
+  .piz-resumen,
+  .piz-leyenda {
+    flex: none;
+  }
+  .piz-datos {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .piz-frase {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+/* Ventanas bajitas: menos aire entre piezas */
+@media (min-width: 900px) and (max-height: 820px) {
+  .lado-pizarron {
+    gap: 6px;
+  }
+  .piz-marco {
+    padding: 9px 9px 0;
+  }
+  .piz-repisa {
+    height: 16px;
+    padding-bottom: 3px;
+  }
+  .piz-valor {
+    margin-top: 4px;
+    font-size: 1.7rem;
+  }
+  .piz-lugar {
+    padding: 10px 14px 12px;
+  }
+  .piz-capas,
+  .piz-historia {
+    margin-top: 8px;
+  }
+  .piz-capas ul {
+    gap: 2px;
+  }
+  .piz-historia svg {
+    height: 28px;
+  }
+  .piz-datos {
+    gap: 10px;
+  }
+  /* La frase del fotograma ya la dice el lector de pantalla y Tlalli; aquí se omite */
+  .piz-frase {
+    display: none !important;
+  }
+}
+/* Pantallas altas: el mapa topa con el ancho antes que con el alto, así que el pizarrón
+   toma el alto de su contenido y cuelga centrado en la pared, sin verde vacío. */
+@media (min-width: 900px) and (min-height: 1000px) {
+  .piz-marco {
+    flex: 0 1 auto;
+    margin-block: auto;
+  }
+  .piz-cuerpo {
+    flex: none;
+  }
+  .piz-mapa,
+  .piz-mapa-caja {
+    flex: none;
+  }
+  .piz-mapa-caja {
+    container-type: inline-size;
+  }
+  .piz-mapa-area {
+    width: 100%;
+  }
+  .piz-mapa.is-globo .piz-mapa-area {
+    width: min(100%, 40vh);
+  }
+}

@@ -1,7 +1,12 @@
 // Los cuatro vinilos de la repisa.
-// `frames` son datos de EJEMPLO: el equipo de Datos los reemplaza con los valores de cada disc.json.
+// El id de cada vinilo es el de su disc.json en public/discs/ (lo escribe pipeline/).
+// `frames` arranca con datos de EJEMPLO; App los reemplaza con los del disc.json al cargarlo
+// (ver audioFrames en realData.ts).
 
-export type DiscId = 'sst' | 'ice' | 'veg' | 'co2'
+export type DiscId = 'sst' | 'aerosols' | 'forest' | 'co2'
+
+/** Arte de fieltro de cada vinilo (assets/fieltro/funda-*.webp y disco-*.webp). */
+export type FeltArt = 'sst' | 'ice' | 'veg' | 'co2'
 
 export interface Frame {
   value: number // 0 a 1: valor medio
@@ -12,6 +17,7 @@ export interface Frame {
 
 export interface Disc {
   id: DiscId
+  art: FeltArt
   opus: number
   title: string
   variable: string
@@ -24,6 +30,7 @@ export interface Disc {
   howItSounds: string
   listen: string // lo que dice Tlalli cuando empieza a sonar
   frames: Frame[]
+  real: boolean // true cuando frames ya viene del disc.json
 }
 
 export const FRAME_MS = 4500
@@ -55,6 +62,7 @@ function mockFrames(seed: number, trend: number): Frame[] {
 export const DISCS: Disc[] = [
   {
     id: 'sst',
+    art: 'sst',
     opus: 1,
     title: 'Fiebre del océano',
     variable: 'Temperatura de la superficie del mar',
@@ -68,41 +76,47 @@ export const DISCS: Disc[] = [
       'Cuando el agua se calienta, el piano sube y brilla. Si el mar se aleja de lo normal, la armonía se tensa.',
     listen: 'Mis mares. Si el piano sube, el agua se calienta.',
     frames: mockFrames(11, 1),
+    real: false,
   },
   {
-    id: 'ice',
+    id: 'aerosols',
+    art: 'ice', // pendiente: arte de fieltro propio para aerosoles
     opus: 2,
-    title: 'Elegía del hielo',
-    variable: 'Extensión del hielo marino',
-    about: 'el hielo de mis polos',
+    title: 'Bruma',
+    variable: 'Aerosoles: polvo, humo, sal marina y sulfato',
+    about: 'el polvo, el humo y la sal que flotan en mi aire',
     instrument: 'Armónicos de guitarra',
     wave: 'sine',
     baseMidi: 69,
-    color: '#F1F1EC',
+    color: '#C19ADC',
     ink: 'oscura',
     howItSounds:
-      'Con menos hielo quedan menos notas, más agudas y solas. La tensión crece cuando el hielo cae bajo lo normal.',
-    listen: 'Mi hielo. Cuando quedan pocas notas, hay menos.',
-    frames: mockFrames(29, -1),
+      'Entre más partículas flotan en el aire, más agudas y brillantes las notas. Donde hay mucho más que en el resto del planeta, la armonía se tensa.',
+    listen: 'Mi aire con polvo, humo y sal. Notas brillantes, más partículas.',
+    frames: mockFrames(29, 0.4),
+    real: false,
   },
   {
-    id: 'veg',
+    id: 'forest',
+    art: 'veg',
     opus: 3,
     title: 'Pastoral',
-    variable: 'Verdor de la vegetación',
-    about: 'el verdor de mis bosques y cultivos',
+    variable: 'Altura de los bosques',
+    about: 'la altura de mis bosques',
     instrument: 'Guitarra clásica',
     wave: 'sawtooth',
     baseMidi: 52,
     color: '#A5C2A7',
     ink: 'oscura',
     howItSounds:
-      'Entre más verde, la guitarra toca más notas y más agudas. La sequía se oye como tensión.',
-    listen: 'Mis bosques. Más notas, más verde.',
+      'Entre más altos los árboles, la guitarra toca más notas y más agudas. Donde el bosque se aleja de lo normal de su región, se tensa.',
+    listen: 'Mis bosques. Más notas, árboles más altos.',
     frames: mockFrames(47, 0.6),
+    real: false,
   },
   {
     id: 'co2',
+    art: 'co2',
     opus: 4,
     title: 'Respiración',
     variable: 'Dióxido de carbono en el aire',
@@ -116,6 +130,7 @@ export const DISCS: Disc[] = [
       'Con más dióxido de carbono, el órgano baja y sostiene las notas, como una respiración pesada.',
     listen: 'Mi aire. Si el órgano baja y pesa, hay más CO₂.',
     frames: mockFrames(61, 1),
+    real: false,
   },
 ]
 
