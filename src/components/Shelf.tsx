@@ -1,5 +1,6 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
 import type { Disc, DiscId } from '../data/discs'
+import { IconArrow, IconPlay } from './Art'
 import { CoverImg, RecordImg } from './Felt'
 
 interface Props {
@@ -34,7 +35,9 @@ export function Shelf(props: Props) {
         {discs.map((d) => {
           const playing = d.id === currentId
           const selected = d.id === selectedId
-          const cls = ['funda', selected && 'is-selected', d.id === draggingId && 'is-dragging']
+          // Si el disco está en el tocadiscos o en el aire, su funda queda vacía.
+          const out = playing || d.id === draggingId
+          const cls = ['funda', selected && 'is-selected', d.id === draggingId && 'is-dragging', out && 'is-vacia']
             .filter(Boolean)
             .join(' ')
           return (
@@ -53,9 +56,11 @@ export function Shelf(props: Props) {
               onPointerUp={props.onDragEnd}
               onPointerCancel={props.onDragCancel}
             >
-              <span className="funda-disco">
-                <RecordImg id={d.id} />
-              </span>
+              {!out && (
+                <span className="funda-disco">
+                  <RecordImg id={d.id} />
+                </span>
+              )}
               <span className="funda-cara">
                 <CoverImg id={d.id} />
                 <span className={`funda-texto is-${d.ink}`}>
@@ -71,16 +76,18 @@ export function Shelf(props: Props) {
   )
 }
 
-/** Ficha del vinilo elegido: solo tipografía, sin recuadros. */
+/**
+ * Ficha del vinilo elegido: solo tipografía, sin recuadros.
+ * Aquí solo vive lo que es propio del vinilo elegido: ponerlo (▶) o, si ya suena,
+ * ir al pizarrón. La pausa y guardar el disco están en el cajón del buró.
+ */
 export function DiscInfo(props: {
   disc: Disc | null
   isCurrent: boolean
-  playing: boolean
   onPlace: (d: Disc) => void
-  onToggle: () => void
   onLearn: (d: Disc) => void
 }) {
-  const { disc, isCurrent, playing } = props
+  const { disc, isCurrent } = props
   if (!disc) {
     return (
       <div className="ficha">
@@ -99,17 +106,18 @@ export function DiscInfo(props: {
       <p className="ficha-como">{disc.howItSounds}</p>
       <div className="ficha-pie">
         {isCurrent ? (
-          <button type="button" className="btn-fieltro fieltro cosido" onClick={props.onToggle}>
-            {playing ? 'Pausar' : 'Seguir escuchando'}
+          <button type="button" className="btn-fieltro fieltro cosido btn-conocer" onClick={() => props.onLearn(disc)}>
+            Conocer más <IconArrow />
           </button>
         ) : (
-          <button type="button" className="btn-fieltro fieltro cosido" onClick={() => props.onPlace(disc)}>
-            Poner este disco
-          </button>
-        )}
-        {isCurrent && (
-          <button type="button" className="btn-texto btn-conocer" onClick={() => props.onLearn(disc)}>
-            Conocer más <span aria-hidden="true">→</span>
+          <button
+            type="button"
+            className="btn-redondo fieltro cosido"
+            onClick={() => props.onPlace(disc)}
+            aria-label={`Reproducir ${disc.title}`}
+            title="Reproducir este disco"
+          >
+            <IconPlay />
           </button>
         )}
         <p className="ficha-datos">
