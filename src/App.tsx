@@ -1,22 +1,26 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { engine } from './audio/provisional'
 import { DISCS, FRAME_MS } from './data/discs'
 import type { Disc, DiscId } from './data/discs'
+import { audioFrames, loadDiscData } from './data/realData'
+import type { DataMap } from './data/realData'
 import { useSettings } from './hooks/useSettings'
 import mosaico from './assets/fieltro/mosaico.webp'
 import { RecordImg, TlalliImg, WindowImg } from './components/Felt'
 import { NowPlaying, Turntable } from './components/Console'
 import { DiscInfo, Shelf } from './components/Shelf'
 import { Bubbles } from './components/Tlalli'
+import { Pizarron } from './components/Pizarron'
 import type { Message } from './components/Tlalli'
 
 // ---- Lo que dice Tlalli ----------------------------------------------------
 const INTRO = [
   'Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.',
   'Los satélites de la NASA me observan. Con lo que ven, hice música.',
-  'Cada vinilo guarda una parte de mí: mar, hielo, bosques y aire. Haz clic en uno.',
+  'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
   'Luego arrástralo al tocadiscos, o pulsa «Poner este disco».',
+  'Cuando un disco esté sonando, pulsa «Conocer más» y te llevo al pizarrón a ver sus números.',
 ]
 const HOW_TO = [
   'La altura: notas agudas, valores altos; notas graves, valores bajos.',
@@ -27,10 +31,13 @@ const HOW_TO = [
 type Guide = { kind: 'intro' | 'howto'; index: number } | null
 type Drag = { id: DiscId; x: number; y: number; over: boolean }
 type Flight = { disc: Disc; from: DOMRect; to: DOMRect }
+type View = 'sala' | 'pizarron'
+type Walk = 'derecha' | 'izquierda' | null
+
+const DISC_IDS = DISCS.map((d) => d.id)
+const WALK_MS = 1400 // lo que dura el paseo de Tlalli (igual que la transición en pizarron.css)
 
 const VIGA = 'M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900'
-
-const discById = (id: DiscId | null) => DISCS.find((d) => d.id === id) ?? null
 
 export default function App() {
   const [settings, setSetting] = useSettings()
@@ -43,6 +50,10 @@ export default function App() {
   const [drag, setDrag] = useState<Drag | null>(null)
   const [flight, setFlight] = useState<Flight | null>(null)
   const [a11yOpen, setA11yOpen] = useState(false)
+  const [data, setData] = useState<DataMap>({})
+  const [dataErrors, setDataErrors] = useState<Partial<Record<DiscId, string>>>({})
+  const [view, setView] = useState<View>('sala')
+  const [walking, setWalking] = useState<Walk>(null)
 
   const nextId = useRef(1)
   const covers = useRef(new Map<DiscId, HTMLButtonElement>())
@@ -51,9 +62,36 @@ export default function App() {
   const suppressClick = useRef(false)
   const tenseSaid = useRef(new Set<DiscId>())
   const flyEl = useRef<HTMLDivElement | null>(null)
+  const walkTimer = useRef<number | undefined>(undefined)
+
+  // ---- Datos reales: los disc.json que escribe pipeline/ ----------------------
+  useEffect(() => {
+    let alive = true
+    DISC_IDS.forEach((id) => {
+      loadDiscData(id).then(
+        (d) => alive && setData((prev) => ({ ...prev, [id]: d })),
+        (e: unknown) => alive && setDataErrors((prev) => ({ ...prev, [id]: e instanceof Error ? e.message : String(e) })),
+      )
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Cada vinilo suena con los números de su disc.json en cuanto llegan.
+  const discs = useMemo(
+    () =>
+      DISCS.map((d) => {
+        const real = data[d.id]
+        return real ? { ...d, frames: audioFrames(real), real: true } : d
+      }),
+    [data],
+  )
+  const discById = useCallback((id: DiscId | null) => discs.find((d) => d.id === id) ?? null, [discs])
 
   const selected = discById(selectedId)
   const current = discById(currentId)
+  const shownFrame = current ? frame % current.frames.length : 0
 
   const say = useCallback((text: string) => {
     const id = nextId.current++
@@ -82,6 +120,31 @@ export default function App() {
     setGuide({ kind: 'howto', index: 0 })
     say(HOW_TO[0])
     engine.preview(0)
+  }
+
+  // ---- Pasear al pizarrón y volver ----------------------------------------
+  // Tlalli camina a la derecha; la cabaña se desliza y aparece el pizarrón (pizarron.css).
+  const walk = (to: View, dir: Exclude<Walk, null>, focusSelector: string) => {
+    window.clearTimeout(walkTimer.current)
+    setView(to)
+    setGuide(null)
+    const ms = settings.reduceMotion ? 0 : WALK_MS
+    setWalking(ms ? dir : null)
+    walkTimer.current = window.setTimeout(() => {
+      setWalking(null)
+      document.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true })
+    }, ms)
+  }
+  useEffect(() => () => window.clearTimeout(walkTimer.current), [])
+
+  // El pizarrón siempre muestra el disco que está en el tocadiscos.
+  const learnMore = (d: Disc) => {
+    walk('pizarron', 'derecha', '.piz-volver')
+    say(`Vamos al pizarrón. Toca cualquier lugar del mapa y te cuento cómo está ${d.about}.`)
+  }
+  const backToTurntable = () => {
+    walk('sala', 'izquierda', '.ficha .btn-conocer, .funda.is-selected, .funda')
+    say('De vuelta al tocadiscos.')
   }
 
   // ---- Elegir, colocar y reproducir ----------------------------------------
@@ -233,7 +296,7 @@ export default function App() {
   const dragged = discById(drag?.id ?? null)
 
   return (
-    <div className={`cabana${drag ? ' is-dragging' : ''}`}>
+    <div className={`cabana vista-${view}${walking ? ` is-paseando-${walking}` : ''}${drag ? ' is-dragging' : ''}`}>
       <div className="cabin" aria-hidden="true">
         <svg className="cabin-arco" viewBox="0 0 1440 900" preserveAspectRatio="none">
           <defs>
@@ -289,17 +352,19 @@ export default function App() {
             onSkip={skipGuide}
           />
           <div className="tlalli-lugar">
-            <TlalliImg listening={playing} />
+            <TlalliImg listening={playing} walking={walking} />
           </div>
         </section>
 
-        <section className="lado-mueble" aria-label="Vinilos y tocadiscos">
+        <div className="escenario">
+        <section className="lado-mueble" aria-label="Vinilos y tocadiscos" inert={view !== 'sala'}>
           <DiscInfo
             disc={selected}
             isCurrent={selected !== null && selected.id === currentId}
             playing={playing}
             onPlace={(d) => place(d, true)}
             onToggle={toggle}
+            onLearn={learnMore}
           />
           <div className="buro">
             <div className="buro-encima">
@@ -311,7 +376,7 @@ export default function App() {
                 onClick={toggle}
               />
               <Shelf
-                discs={DISCS}
+                discs={discs}
                 selectedId={selectedId}
                 currentId={currentId}
                 draggingId={drag?.id ?? flight?.disc.id ?? null}
@@ -327,7 +392,7 @@ export default function App() {
             <div className="buro-cuerpo">
               <div className="cajon cosido">
                 <span className="perilla" aria-hidden="true" />
-                <NowPlaying disc={current} playing={playing} frame={frame} onToggle={toggle} onEject={eject} />
+                <NowPlaying disc={current} playing={playing} frame={shownFrame} onToggle={toggle} onEject={eject} onLearn={learnMore} />
                 <span className="perilla" aria-hidden="true" />
               </div>
             </div>
@@ -337,9 +402,24 @@ export default function App() {
             </div>
           </div>
         </section>
+
+        {current && (
+          <Pizarron
+            key={current.id}
+            disc={current}
+            data={data}
+            error={dataErrors[current.id]}
+            playing={playing}
+            playingFrame={shownFrame}
+            active={view === 'pizarron'}
+            onBack={backToTurntable}
+            onSay={say}
+          />
+        )}
+        </div>
       </main>
 
-      <p className="cab-credito">Prototipo con datos de ejemplo · Imágenes y datos: NASA Earth Information Center</p>
+      <p className="cab-credito">Imágenes y datos: NASA Scientific Visualization Studio · NASA Earth Information Center</p>
 
       {drag && dragged && (
         <div className="volador" aria-hidden="true" style={{ transform: `translate(${drag.x}px, ${drag.y}px)` }}>

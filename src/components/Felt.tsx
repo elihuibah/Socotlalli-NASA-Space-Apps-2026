@@ -16,8 +16,9 @@ import ttBrazo from '../assets/fieltro/tt-brazo.webp'
 import ttCaja from '../assets/fieltro/tt-caja.webp'
 import ventana from '../assets/fieltro/ventana.webp'
 
-const FUNDAS: Record<DiscId, string> = { sst: fundaSst, ice: fundaIce, veg: fundaVeg, co2: fundaCo2 }
-const DISCOS: Record<DiscId, string> = { sst: discoSst, ice: discoIce, veg: discoVeg, co2: discoCo2 }
+// Aerosoles usa por ahora el arte de hielo y bosques el de vegetación (ver `art` en data/discs.ts).
+const FUNDAS: Record<DiscId, string> = { sst: fundaSst, aerosols: fundaIce, forest: fundaVeg, co2: fundaCo2 }
+const DISCOS: Record<DiscId, string> = { sst: discoSst, aerosols: discoIce, forest: discoVeg, co2: discoCo2 }
 
 // Todas son decorativas: el nombre accesible lo da el botón o la región que las contiene.
 const img = { alt: '', draggable: false, decoding: 'async' } as const
@@ -32,10 +33,13 @@ export const TurntableArmImg = ({ down }: { down: boolean }) => (
   <img {...img} className={`tt-brazo${down ? ' is-down' : ''}`} src={ttBrazo} />
 )
 
-/** Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear. */
-export function TlalliImg({ listening }: { listening: boolean }) {
+/** Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear. Al caminar le salen pies. */
+export function TlalliImg({ listening, walking = null }: { listening: boolean; walking?: 'derecha' | 'izquierda' | null }) {
+  const cls = ['tlalli-fig', listening && !walking && 'is-listening', walking && `is-walking is-${walking}`].filter(Boolean).join(' ')
   return (
-    <div className={`tlalli-fig${listening ? ' is-listening' : ''}`} role="img" aria-label="Tlalli, la Tierra con ojos grandes">
+    <div className={cls} role="img" aria-label={walking ? 'Tlalli, la Tierra con ojos grandes, va caminando' : 'Tlalli, la Tierra con ojos grandes'}>
+      <span className="tlalli-pie is-izq" aria-hidden="true" />
+      <span className="tlalli-pie is-der" aria-hidden="true" />
       <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
       <img {...img} className="tlalli-ojos" src={tlalliOjos} />
     </div>
