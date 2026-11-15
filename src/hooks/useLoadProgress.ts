@@ -6,14 +6,14 @@ import { loadDiscData } from '../data/realData'
 const IMAGES = Object.values(
   import.meta.glob<string>('../assets/fieltro/*.webp', { eager: true, query: '?url', import: 'default' }),
 )
-const TOTAL = IMAGES.length + DISCS.length
+const TOTAL = IMAGES.length + DISCS.length + 1 // + la fuente
 
 /** Si algo no llega (red lenta o caída), la cabaña se abre de todos modos a los 8 s. */
 const MAX_WAIT_MS = 8000
 
 /**
  * Carga real de lo que la cabaña necesita para verse completa:
- * las piezas de fieltro (imágenes) y los datos de cada vinilo (disc.json).
+ * la fuente Urbanist, las piezas de fieltro (imágenes) y los datos de cada vinilo (disc.json).
  * Cada pieza cuenta al terminar, haya llegado bien o no, para que un fallo no bloquee la entrada.
  */
 export function useLoadProgress() {
@@ -30,6 +30,10 @@ export function useLoadProgress() {
       img.onerror = tick
       img.src = src
     })
+    // La fuente: con font-display: block el texto no se ve hasta que llega, así que nunca
+    // aparece con otra letra. El telón no se abre antes de tenerla.
+    if (document.fonts?.load) document.fonts.load('500 1em "Urbanist Variable"').then(tick, tick)
+    else tick()
     // Misma promesa que usa App (loadDiscData guarda en caché): no se descarga dos veces.
     DISCS.forEach((d) => loadDiscData(d.id).then(tick, tick))
 

@@ -7,8 +7,10 @@
     <title>Socotlalli</title>
     <!-- La fuente se pide antes que nada para que el texto aparezca ya con su tipografía -->
     <link rel="preload" href="/src/assets/fonts/urbanist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Mientras llega la app, la página ya tiene el color del telón de entrada (styles/telon.css) -->
     <style>
-      html { background: #4a382e; }
+      html,
+      body:has(#root:empty) { background: #2a1e27; }
     </style>
   </head>
   <body>
