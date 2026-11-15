@@ -67,6 +67,77 @@ export function CoverArt({ id }: { id: FeltArt }) {
           <path d="M10 62 q8 -6 16 0 t16 0 M52 26 q8 -6 16 0 t16 0 M14 84 q8 -6 16 0 t16 0 t16 0" {...stitch} />
         </>
       )}
+      {/* Cristal (hielo marino): un cristal de hielo tallado sobre la noche polar */}
+      {id === 'cristal' && (
+        <>
+          <rect width="100" height="100" rx="4" fill="#16223D" />
+          <path d="M0 70 H100 V100 H0Z" fill="#24365F" />
+          {/* cristal grande, con sus facetas */}
+          <path d="M57 7 L78 24 L72 52 L57 62 L42 52 L36 24Z" fill="#A9D6F0" />
+          <path d="M57 7 L78 24 L57 32Z" fill="#F1F1EC" />
+          <path d="M57 7 L36 24 L57 32Z" fill="#D3E9F7" />
+          <path d="M57 32 L78 24 L72 52 L57 62Z" fill="#7FA6DE" />
+          <path d="M57 32 L36 24 L42 52 L57 62Z" fill="#A9C6EE" />
+          <path d="M57 9 V60 M38 25 L57 32 L76 25" {...stitch} stroke="#3E5C9C" strokeOpacity={0.9} />
+          {/* cristales chicos */}
+          <path d="M21 34 L30 43 L27 58 L21 62 L15 58 L13 43Z" fill="#A9C6EE" />
+          <path d="M21 34 L30 43 L21 47Z" fill="#F1F1EC" />
+          <path d="M21 47 L30 43 L27 58 L21 62Z" fill="#7FA6DE" />
+          <path d="M88 40 L94 47 L92 58 L88 61 L83 58 L82 47Z" fill="#7FA6DE" />
+          <path d="M88 40 L94 47 L88 50Z" fill="#D3E9F7" />
+          {/* destellos */}
+          <path d="M20 14 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#F4E2A4" />
+          <path d="M90 18 l1.3 3.2 3.2 1.3 -3.2 1.3 -1.3 3.2 -1.3 -3.2 -3.2 -1.3 3.2 -1.3Z" fill="#F1F1EC" />
+          <path d="M6 80 h20 M44 88 h24 M78 80 h14" {...stitch} strokeOpacity={0.5} />
+        </>
+      )}
+      {/* Brasas (incendios): llamas y chispas sobre carbón */}
+      {id === 'brasas' && (
+        <>
+          <rect width="100" height="100" rx="4" fill="#2E221C" />
+          <circle cx="58" cy="46" r="34" fill="#4A2A20" />
+          {/* llamas */}
+          <path d="M27 30 C36 41 39 50 34 57 C30 62 22 60 21 53 C20 46 24 40 27 30Z" fill="#C9826B" />
+          <path d="M86 34 C92 43 94 50 90 55 C86 59 80 57 79 52 C78 46 83 42 86 34Z" fill="#D9421C" />
+          <path d="M58 8 C76 28 82 44 73 57 C67 65 49 66 43 57 C34 43 51 32 58 8Z" fill="#F0642A" />
+          <path d="M58 28 C67 41 70 50 65 57 C61 62 53 61 51 55 C48 47 55 41 58 28Z" fill="#F4E2A4" />
+          <path d="M58 40 V56" {...stitch} stroke="#F0642A" strokeOpacity={0.9} />
+          {/* brasas encendidas */}
+          <g fill="#8E2413">
+            <ellipse cx="30" cy="66" rx="13" ry="6" />
+            <ellipse cx="58" cy="67" rx="15" ry="6.5" />
+            <ellipse cx="84" cy="66" rx="12" ry="6" />
+          </g>
+          <g fill="#F0642A">
+            <ellipse cx="27" cy="65" rx="5" ry="2" />
+            <ellipse cx="60" cy="66" rx="6" ry="2.2" />
+            <ellipse cx="86" cy="65" rx="4" ry="1.8" />
+          </g>
+          {/* ceniza y chispas */}
+          <path d="M0 70 H100 V100 H0Z" fill="#3A2C26" />
+          <g fill="#F4E2A4">
+            <circle cx="16" cy="16" r="2.2" />
+            <circle cx="34" cy="10" r="1.6" />
+            <circle cx="84" cy="14" r="2" />
+            <circle cx="10" cy="40" r="1.5" />
+          </g>
+          <path d="M16 22 q4 6 0 12 M84 19 q-4 5 0 10" {...stitch} stroke="#F4E2A4" strokeOpacity={0.6} />
+        </>
+      )}
+      {/* Siglo de calor (temperatura global): franjas de azul a rojo, de 1885 a 2021 */}
+      {id === 'siglo' && (
+        <>
+          <rect width="100" height="100" rx="4" fill="#4A2018" />
+          {['#2F4A82', '#3E5C9C', '#4A6DB5', '#7FA6DE', '#A9C6EE', '#D9CDBD', '#E3A08A', '#C9826B', '#D9421C', '#A52C16'].map((c, i) => (
+            <rect key={c} x={i * 10} y="0" width={i === 9 ? 10 : 10.6} height="64" rx={i === 0 || i === 9 ? 4 : 0} fill={c} />
+          ))}
+          <rect x="0" y="58" width="100" height="42" rx="4" fill="#4A2018" />
+          {/* la temperatura sube con los años */}
+          <path d="M6 46 C22 44 30 47 42 40 S62 34 72 24 S86 14 90 10" {...stitch} strokeWidth={1.8} strokeOpacity={0.95} />
+          <circle cx="90" cy="10" r="5" fill="#F4E2A4" />
+          <path d="M5 64 H95" {...stitch} strokeOpacity={0.5} />
+        </>
+      )}
       <rect x="4" y="4" width="92" height="92" rx="3" {...stitch} strokeOpacity={0.45} />
     </svg>
   )

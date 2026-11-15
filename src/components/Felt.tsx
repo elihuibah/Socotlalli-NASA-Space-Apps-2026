@@ -26,10 +26,10 @@ import tlalliPupilas from '../assets/fieltro/tlalli-pupilas.webp'
 import tlalliRisa from '../assets/fieltro/tlalli-risa.webp'
 import ttBrazo from '../assets/fieltro/tt-brazo.webp'
 import ttCaja from '../assets/fieltro/tt-caja.webp'
-import ventana from '../assets/fieltro/ventana.webp'
 
 // Aerosoles usa por ahora el arte de hielo y bosques el de vegetación (ver `art` en data/discs.ts).
-// Hielo marino, lluvia, incendios y temperatura global son esas mismas piezas con el tono girado (provisional).
+// Hielo marino («Cristal»), incendios («Brasas») y temperatura global («Siglo de calor») tienen carátula propia;
+// lluvia es la del mar con el tono girado (provisional).
 const FUNDAS: Record<DiscId, string> = { sst: fundaSst, aerosols: fundaIce, forest: fundaVeg, co2: fundaCo2, ice: fundaSeaIce, rain: fundaRain, fire: fundaFire, giss: fundaGiss }
 const DISCOS: Record<DiscId, string> = { sst: discoSst, aerosols: discoIce, forest: discoVeg, co2: discoCo2, ice: discoSeaIce, rain: discoRain, fire: discoFire, giss: discoGiss }
 
@@ -40,7 +40,6 @@ export const CoverImg = ({ id }: { id: DiscId }) => <img {...img} className="fun
 export const RecordImg = ({ id, className }: { id: DiscId; className?: string }) => (
   <img {...img} className={className} src={DISCOS[id]} />
 )
-export const WindowImg = () => <img {...img} className="ventana" src={ventana} />
 export const TurntableBoxImg = () => <img {...img} className="tt-caja" src={ttCaja} />
 export const TurntableArmImg = ({ down }: { down: boolean }) => (
   <img {...img} className={`tt-brazo${down ? ' is-down' : ''}`} src={ttBrazo} />

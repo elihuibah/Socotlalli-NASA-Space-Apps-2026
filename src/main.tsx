@@ -5,6 +5,7 @@ import './styles/cabana.css'
 import './styles/tlalli.css'
 import './styles/pizarron.css'
 import './styles/telon.css'
+import './styles/ventanal.css'
 import App from './App.tsx'
 import TestPlayer from './ui/test/TestPlayer.tsx'
 
