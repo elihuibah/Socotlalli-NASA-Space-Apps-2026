@@ -207,7 +207,7 @@ Socoteam, Ensenada, Baja California, Mexico.
 - Bryan Jeronimo: Interface and music structure.
 
 **Logic**
-  - ALejandro Segovia: Logic and sound management
+  - Alejandro Segovia: Logic and sound management
   - Jared Delgado: Logic and sound management
 
 ## License
