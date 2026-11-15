@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
-import { engine } from './audio/bridge'
-import { DISCS, FRAME_MS } from './data/discs'
+import * as audio from './audio'
+import { DISCS } from './data/discs'
 import type { Disc, DiscId } from './data/discs'
-import { audioFrames, loadDiscData } from './data/realData'
+import { COLS, audioFrames, loadDiscData } from './data/realData'
 import type { DataMap } from './data/realData'
 import { useSettings } from './hooks/useSettings'
 import mosaico from './assets/fieltro/mosaico.webp'
@@ -19,14 +19,18 @@ const INTRO = [
   'Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.',
   'Los satélites de la NASA me observan. Con lo que ven, hice música.',
   'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
-  'Luego arrástralo al tocadiscos, o pulsa «Poner este disco».',
+  'Luego arrástralo al tocadiscos, o pulsa el botón de reproducir.',
   'Cuando un disco esté sonando, pulsa «Conocer más» y te llevo al pizarrón a ver sus números.',
 ]
 const HOW_TO = [
   'La altura: notas agudas, valores altos; notas graves, valores bajos.',
   'La tensión: si suena incómodo, me alejé de lo normal.',
   'El lugar: con audífonos, el sonido viaja de oeste a este.',
+  'El ritmo: una zona pareja suena con notas largas; una muy variada, con notas rápidas.',
+  'El tempo: si el mapa cambia mucho entre fechas, la música se acelera.',
 ]
+// Ejemplo de la leyenda sonora (src/audio/legend.ts) que acompaña cada línea de HOW_TO.
+const HOW_TO_SOUND = ['pitch', 'tension', 'pan', 'density', 'tempo']
 
 type Guide = { kind: 'intro' | 'howto'; index: number } | null
 type Drag = { id: DiscId; x: number; y: number; over: boolean }
@@ -54,6 +58,8 @@ export default function App() {
   const [dataErrors, setDataErrors] = useState<Partial<Record<DiscId, string>>>({})
   const [view, setView] = useState<View>('sala')
   const [walking, setWalking] = useState<Walk>(null)
+  const [landing, setLanding] = useState(false) // Tlalli acaba de llegar y guarda sus pies
+  const [listenCell, setListenCell] = useState<number | null>(null) // celda del modo "lugar en el tiempo"
 
   const nextId = useRef(1)
   const covers = useRef(new Map<DiscId, HTMLButtonElement>())
@@ -63,6 +69,8 @@ export default function App() {
   const tenseSaid = useRef(new Set<DiscId>())
   const flyEl = useRef<HTMLDivElement | null>(null)
   const walkTimer = useRef<number | undefined>(undefined)
+  const landTimer = useRef<number | undefined>(undefined)
+  const loadToken = useRef(0) // descarta cargas de un disco que ya se quitó del plato
 
   // ---- Datos reales: los disc.json que escribe pipeline/ ----------------------
   useEffect(() => {
@@ -110,7 +118,7 @@ export default function App() {
     }
     setGuide({ ...guide, index: i })
     say(lines[i])
-    if (guide.kind === 'howto') engine.preview(i)
+    if (guide.kind === 'howto') void audio.playLegend(HOW_TO_SOUND[i])
   }
   const skipGuide = () => {
     setGuide(null)
@@ -119,7 +127,7 @@ export default function App() {
   const startHowTo = () => {
     setGuide({ kind: 'howto', index: 0 })
     say(HOW_TO[0])
-    engine.preview(0)
+    void audio.playLegend(HOW_TO_SOUND[0])
   }
 
   // ---- Pasear al pizarrón y volver ----------------------------------------
@@ -130,12 +138,24 @@ export default function App() {
     setGuide(null)
     const ms = settings.reduceMotion ? 0 : WALK_MS
     setWalking(ms ? dir : null)
+    setLanding(false)
+    window.clearTimeout(landTimer.current)
     walkTimer.current = window.setTimeout(() => {
       setWalking(null)
+      if (ms) {
+        setLanding(true)
+        landTimer.current = window.setTimeout(() => setLanding(false), 560)
+      }
       document.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true })
     }, ms)
   }
-  useEffect(() => () => window.clearTimeout(walkTimer.current), [])
+  useEffect(
+    () => () => {
+      window.clearTimeout(walkTimer.current)
+      window.clearTimeout(landTimer.current)
+    },
+    [],
+  )
 
   // El pizarrón siempre muestra el disco que está en el tocadiscos.
   const learnMore = (d: Disc) => {
@@ -166,16 +186,30 @@ export default function App() {
       setCurrentId(d.id)
       setSelectedId(d.id)
       setFrame(0)
+      setListenCell(null)
       setPlaying(true)
-      engine.loadDisc(d)
-      engine.play()
       say(d.listen)
+      // El motor toca el disc.json del pipeline tal cual (Contrato 1).
+      const token = ++loadToken.current
+      loadDiscData(d.id).then(
+        (real) => {
+          if (token !== loadToken.current) return
+          audio.loadDisc(real)
+          audio.setMode('scan')
+          void audio.play()
+        },
+        () => {
+          if (token !== loadToken.current) return
+          setPlaying(false)
+          say('No pude leer los datos de este disco. Prueba con otro.')
+        },
+      )
     },
     [say],
   )
 
   const place = (d: Disc, animate: boolean) => {
-    void engine.start() // este clic es el que le permite al navegador sonar
+    void audio.start() // este clic es el que le permite al navegador sonar
     setGuide(null)
     const from = covers.current.get(d.id)
     const to = turntable.current
@@ -213,37 +247,61 @@ export default function App() {
       return
     }
     if (playing) {
-      engine.pause()
+      audio.pause()
       setPlaying(false)
       say('Pausa. Aquí te espero.')
     } else {
-      void engine.start()
-      engine.play()
+      void audio.play()
       setPlaying(true)
     }
   }
 
   const eject = () => {
-    engine.pause()
+    loadToken.current++
+    audio.pause()
     setPlaying(false)
     setCurrentId(null)
+    setListenCell(null)
     say('Listo, lo guardé en su funda. ¿Cuál sigue?')
   }
 
-  // Avance de fotogramas mientras suena.
+  // El motor decide cuándo cambia el fotograma (al terminar cada barrido) y avisa aquí,
+  // así la imagen y el texto siguen a la música.
+  const currentRef = useRef(current)
   useEffect(() => {
-    if (!playing || !current) return
-    const t = window.setTimeout(() => {
-      const next = (frame + 1) % current.frames.length
-      setFrame(next)
-      engine.setFrame(next)
-      if (Math.abs(current.frames[next].anomaly) > 0.7 && !tenseSaid.current.has(current.id)) {
-        tenseSaid.current.add(current.id)
-        say('¿Oyes cómo se tensa la armonía? Ahí me alejé de lo normal.')
-      }
-    }, FRAME_MS)
-    return () => window.clearTimeout(t)
-  }, [playing, current, frame, say])
+    currentRef.current = current
+  }, [current])
+  useEffect(
+    () =>
+      audio.onFrame((next) => {
+        setFrame(next)
+        const c = currentRef.current
+        const f = c?.frames[next]
+        if (c && f && Math.abs(f.anomaly) > 0.7 && !tenseSaid.current.has(c.id)) {
+          tenseSaid.current.add(c.id)
+          say('¿Oyes cómo se tensa la armonía? Ahí me alejé de lo normal.')
+        }
+      }),
+    [say],
+  )
+  useEffect(() => () => audio.pause(), [])
+
+  // Modo "lugar en el tiempo": el pizarrón elige una celda y suena sola a lo largo de las fechas.
+  const listenAt = (cell: number | null) => {
+    setListenCell(cell)
+    if (cell === null) {
+      audio.setMode('scan')
+      say('De vuelta al barrido: el sonido viaja de oeste a este.')
+      return
+    }
+    audio.setRegion(cell % COLS, Math.floor(cell / COLS))
+    audio.setMode('region')
+    if (!playing) {
+      void audio.play()
+      setPlaying(true)
+    }
+    say('Ahora oyes solo ese lugar, fecha tras fecha.')
+  }
 
   // ---- Arrastrar un vinilo al tocadiscos ------------------------------------
   const isOverTurntable = (x: number, y: number) => {
@@ -313,11 +371,12 @@ export default function App() {
         </svg>
         <div className="cabin-luces" />
         <div className="cabin-piso" />
-        <div className="tapete" />
       </div>
 
       <header className="cab-header">
-        <p className="logo">Socotlalli</p>
+        <a className="logo" href={import.meta.env.BASE_URL} aria-label="Socotlalli, ir al inicio">
+          Socotlalli
+        </a>
         <nav aria-label="Opciones" className="cab-nav">
           <button type="button" className="btn-texto" onClick={startHowTo}>
             Cómo se escucha
@@ -326,24 +385,22 @@ export default function App() {
             Accesibilidad
           </button>
         </nav>
-        {a11yOpen && (
-          <div id="panel-a11y" className="a11y-panel fieltro cosido">
-            <label>
-              <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
-              Reducir movimiento
-            </label>
-            <label>
-              <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
-              Texto más grande
-            </label>
-            <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
-          </div>
-        )}
+        {/* Siempre está en la página para poder animar su entrada y salida (cabana.css) */}
+        <div id="panel-a11y" className={`a11y-panel fieltro cosido${a11yOpen ? ' is-open' : ''}`} inert={!a11yOpen}>
+          <label>
+            <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
+            Reducir movimiento
+          </label>
+          <label>
+            <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
+            Texto más grande
+          </label>
+          <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
+        </div>
       </header>
 
       <main className="cab-main">
         <section className="lado-tlalli" aria-label="Tlalli">
-          <WindowImg />
           <Bubbles
             messages={messages}
             canAdvance={guide !== null}
@@ -352,18 +409,24 @@ export default function App() {
             onSkip={skipGuide}
           />
           <div className="tlalli-lugar">
-            <TlalliImg listening={playing} walking={walking} />
+            <TlalliImg
+              listening={playing}
+              walking={walking}
+              landing={landing}
+              still={settings.reduceMotion}
+              onLaugh={() => say('¡Ja, ja, ja! Me haces cosquillas.')}
+            />
           </div>
+          <div className="tapete" aria-hidden="true" />
         </section>
 
         <div className="escenario">
         <section className="lado-mueble" aria-label="Vinilos y tocadiscos" inert={view !== 'sala'}>
+          <WindowImg />
           <DiscInfo
             disc={selected}
             isCurrent={selected !== null && selected.id === currentId}
-            playing={playing}
             onPlace={(d) => place(d, true)}
-            onToggle={toggle}
             onLearn={learnMore}
           />
           <div className="buro">
@@ -392,7 +455,7 @@ export default function App() {
             <div className="buro-cuerpo">
               <div className="cajon cosido">
                 <span className="perilla" aria-hidden="true" />
-                <NowPlaying disc={current} playing={playing} frame={shownFrame} onToggle={toggle} onEject={eject} onLearn={learnMore} />
+                <NowPlaying disc={current} playing={playing} frame={shownFrame} onToggle={toggle} onEject={eject} />
                 <span className="perilla" aria-hidden="true" />
               </div>
             </div>
@@ -414,6 +477,8 @@ export default function App() {
             active={view === 'pizarron'}
             onBack={backToTurntable}
             onSay={say}
+            listenCell={listenCell}
+            onListen={listenAt}
           />
         )}
         </div>

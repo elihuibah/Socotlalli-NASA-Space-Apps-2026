@@ -24,6 +24,10 @@ export const setRegion = (col: number, row: number): void => engine.setRegion(co
 export const onNote = (callback: NoteCallback): (() => void) => engine.onNote(callback);
 
 // Extras fuera del contrato mínimo.
+export const start = (): Promise<void> => engine.start();
+export const setFrame = (frameIndex: number): void => engine.setFrame(frameIndex);
+export const getMode = (): Mode => engine.getMode();
+export const isPlaying = (): boolean => engine.isPlaying();
 export const onFrame = (callback: FrameCallback): (() => void) => engine.onFrame(callback);
 export const playLegend = (id: string): Promise<void> => engine.playLegend(id);
 export const getCalibration = (): Calibration => engine.getCalibration();

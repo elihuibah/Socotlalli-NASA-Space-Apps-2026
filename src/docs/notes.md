@@ -1,6 +1,15 @@
 # Notes
 ## Audio 
 
+- **El motor toca el disc.json del pipeline tal cual.** `src/audio` (Tone.js) recibe el mismo archivo que escribe `pipeline/build_disc.py`, sin pasos intermedios: celda por celda, no un promedio del mapa. Reemplaza al motor provisional de Web Audio, que reducía cada fotograma a 4 números y escogía notas al azar. Ahora la misma imagen siempre suena igual.
+- **Respeta los campos extra del pipeline.** `mask` por fotograma (vistas del globo de bosques): las celdas de océano o del borde no suenan. `layers` (aerosoles): cada tipo de partícula tiene su voz (humo grave y áspero, polvo cálido, sal marina limpia y aguda, sulfato de campana). `view_mode: "globe"`: el tempo queda fijo en 90 BPM, porque cada vista es otro lugar, no otra fecha.
+- **Calibración del barrido.** El barrido toca en cada columna la celda más alejada de lo normal. Con los cortes de tensión medidos sobre todas las celdas, el 95 % de las notas de temperatura del mar sonaban tensas y no se distinguía un mes normal de uno anómalo. Ahora los cortes se miden sobre las celdas que el barrido toca: 55 % limpia, 25 % séptimas, 15 % novenas, 5 % tritonos en cada disco.
+- **Un timbre por disco, con sintetizadores.** Temperatura del mar: piano (FM, ataque seco). Aerosoles: armónicos (campanas AM). Bosques: guitarra clásica (pulsada, sin sostenido). CO₂: órgano (sostenido, grave). Las guitarras grabadas entran cambiando una línea del preset (`samples`), pero `public/samples` sigue vacío.
+- **Distorsión por anomalía (nivel 3).** Solo en el órgano de CO₂ y solo en tensión máxima, proporcional a |anomalía|. Un limitador a -1 dB evita que los acordes de 4 o 5 notas saturen la bocina.
+- **El motor manda el reloj.** Cada fotograma dura un barrido completo (32 columnas, de 6 a 16 s según el tempo y el ritmo) y la interfaz sigue al motor con `onFrame`. Antes la interfaz cambiaba de fotograma cada 4.5 s sin importar la música.
+- **Modo "lugar en el tiempo".** Desde el pizarrón, "Escuchar solo este lugar" hace sonar una celda fecha tras fecha. No aparece en bosques (cada vista es otro lugar) ni en aerosoles (una sola fecha).
+- **Comprobación sin navegador.** `npm run discs:check` corre `pipeline/validate.py` y luego pasa cada disco por el mismo mapeo del motor: cuántas notas, cuánta tensión por fotograma y cuánto dura cada barrido. Sirve para elegir el fotograma normal y el anómalo del pitch (temperatura del mar: mayo de 2007 tiene 0 notas tensas; septiembre de 2007, 17).
+
 ## Data
 
 - **Pipeline en Python, precalculado.** `pipeline/` lee cada imagen de NASA SVS y escribe `public/discs/<id>.json` (rejilla de 32x16 = 512 celdas). Se corre una vez en la laptop; la app solo lee los JSON, así la demo no depende de internet ni de un servidor. Descartado: leer las imágenes en el navegador (más lento y frágil en la demo).

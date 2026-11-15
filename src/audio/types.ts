@@ -8,6 +8,10 @@
  * row 0 = norte (arriba), col 0 = oeste (izquierda).
  */
 
+// ---------------------------------------------------------------------------
+// Contrato 1: el disco
+// ---------------------------------------------------------------------------
+
 export interface Grid {
   cols: number;
   rows: number;
@@ -24,6 +28,12 @@ export interface Frame {
   anomaly: number[];
   /** Frase descriptiva del fotograma (texto en vivo). */
   text: string;
+  /** Solo vistas del globo: celdas con dato en este fotograma (reemplaza a Disc.mask). */
+  mask?: number[];
+  /** Solo vistas del globo: qué parte del planeta se ve. */
+  view?: string;
+  /** Solo aerosoles: valor 0..1 de cada tipo de partícula, por celda. */
+  layers?: Record<string, number[]>;
 }
 
 export interface Disc {
@@ -39,7 +49,18 @@ export interface Disc {
   range?: [number, number];
   /** 1 = celda con dato, 0 = sin dato (p. ej. tierra en SST). Opcional. */
   mask?: number[];
+  /** Color de acento del disco (lo usa la interfaz). */
+  accent?: string;
+  /** Nombre legible de cada capa de `layers` (aerosoles). */
+  layer_names?: Record<string, string>;
+  period?: string;
+  /** "globe": cada fotograma es otra vista del globo, no otra fecha. */
+  view_mode?: "globe";
 }
+
+// ---------------------------------------------------------------------------
+// Contrato 2: lo que el motor expone
+// ---------------------------------------------------------------------------
 
 export type Mode = "scan" | "region";
 
@@ -60,6 +81,10 @@ export interface NoteEvent {
   time: number;
   /** Duración en notación de Tone.js, p. ej. "8n". */
   duration: Subdivision;
+  /** Paneo -1 (izquierda/oeste) a 1 (derecha/este). */
+  pan: number;
+  /** Solo discos con capas: la capa dominante de la celda (p. ej. "dust"). */
+  layer?: string;
 }
 
 export type NoteCallback = (event: NoteEvent) => void;
@@ -76,6 +101,10 @@ export interface AudioEngineApi {
   onNote(callback: NoteCallback): () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Mapeo imagen → música
+// ---------------------------------------------------------------------------
+
 /** Una celda leída del disco, lista para mapearse. */
 export interface CellSample {
   col: number;
@@ -87,6 +116,8 @@ export interface CellSample {
   neighborVariation: number;
   /** false si la máscara dice que la celda no tiene dato. */
   hasData: boolean;
+  /** Solo discos con capas: la capa con más valor en la celda. */
+  layer?: string;
 }
 
 /**
@@ -123,35 +154,36 @@ export interface ListeningMode {
   /** Fotograma activo. */
   readonly frameIndex: number;
   reset(): void;
+  /** Salta al inicio del fotograma dado. */
+  seek(frameIndex: number): void;
 }
 
 /** Preset de timbre por disco (un timbre por disco, nivel 2). */
 export interface InstrumentPreset {
   id: string;
   oscillator:
-    | "sine" | "triangle" | "sawtooth" | "square"
-    | "fatsawtooth" | "fattriangle" | "fatsquare"
-    | "fmsine" | "amsine";  
+    | "sine"
+    | "triangle"
+    | "sawtooth"
+    | "square"
+    | "fatsawtooth"
+    | "fatsquare"
+    | "fattriangle"
+    | "fmsine"
+    | "fmtriangle"
+    | "amsine"
+    | "amtriangle";
   envelope: { attack: number; decay: number; sustain: number; release: number };
-  samples?: { baseUrl: string; urls: Record<string, string> };
-  /** Octava base del registro. */
-  baseOctave: number;
-}
-
-/** Preset de timbre por disco (un timbre por disco, nivel 2). */
-export interface InstrumentPreset {
-  id: string;
-  oscillator:
-    | "sine" | "triangle" | "sawtooth" | "square"
-    | "fatsawtooth" | "fattriangle" | "fatsquare"
-    | "fmsine" | "amsine";
-  envelope: { attack: number; decay: number; sustain: number; release: number };
+  /** Volumen de la voz en dB (para emparejar discos). */
+  volume?: number;
+    /** Con grabaciones: qué posiciones suenan juntas según la tensión (índice 0 a 3). */
+  mix?: number[][];
+  /** Distorsión máxima 0..1 en tensión 3 (nivel 3). 0 o ausente = sin distorsión. */
+  maxDistortion?: number;
+  /** Una voz por capa (aerosoles): capa -> oscilador y octava propios. */
+  layers?: Record<string, { oscillator: InstrumentPreset["oscillator"]; octaveShift: number }>;
   /** Muestras de public/samples para Tone.Sampler (nivel 3). */
   samples?: { baseUrl: string; urls: Record<string, string> };
   /** Octava base del registro. */
   baseOctave: number;
-  /** Volumen del instrumento en dB (opcional). */
-  volume?: number;
-  /** Distorsión máxima 0..1 con anomalía fuerte (opcional). */
-  maxDistortion?: number;
 }
