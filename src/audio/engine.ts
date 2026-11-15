@@ -8,7 +8,7 @@ import * as Tone from "tone";
 import { calibrate, DEFAULT_CALIBRATION, normalizedFrameChange, type Calibration } from "./calibration";
 import { EffectsChain } from "./effects";
 import { Harmony, midiToNote } from "./harmony";
-import { Instrument, presetFor } from "./instruments";
+import { createPeakVoice, Instrument, presetFor, SteelDrum, type PeakVoice } from "./instruments";
 import { LEGEND, type LegendContext } from "./legend";
 import { mapCell } from "./mapping";
 import { RegionMode } from "./modes/region";
@@ -38,6 +38,9 @@ export class AudioEngine implements AudioEngineApi {
   private calibration: Calibration = DEFAULT_CALIBRATION;
   private effects: EffectsChain | null = null;
   private instrument: Instrument | null = null;
+  private peakVoices: PeakVoice[] = [];
+  private peakNext = 0;
+  private accompaniment: SteelDrum | null = null;
   private eventId: number | null = null;
   private lastFrame = -1;
   private playing = false;
@@ -170,7 +173,11 @@ export class AudioEngine implements AudioEngineApi {
   dispose(): void {
     this.pause();
     this.instrument?.dispose();
+    this.peakVoices.forEach((v) => v.dispose());
+    this.accompaniment?.dispose();
+    this.accompaniment = null;
     this.effects?.dispose();
+    this.peakVoices = [];
     this.instrument = null;
     this.effects = null;
     this.noteListeners.clear();
@@ -184,6 +191,11 @@ export class AudioEngine implements AudioEngineApi {
   private setInstrument(preset: InstrumentPreset): void {
     if (!this.effects) this.effects = new EffectsChain();
     this.instrument?.dispose();
+    this.peakVoices.forEach((v) => v.dispose());
+    this.peakVoices = (preset.peak ?? []).map((name) => createPeakVoice(name, Tone.getDestination()));
+    this.peakNext = 0;
+    this.accompaniment?.dispose();
+    this.accompaniment = preset.accompany === "steeldrum" ? new SteelDrum(Tone.getDestination()) : null;
     this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
     // Con grabaciones: salida directa, sin distorsión, filtro, paneo ni reverb.
     const destination = preset.samples ? Tone.getDestination() : this.effects.input;
@@ -235,6 +247,8 @@ export class AudioEngine implements AudioEngineApi {
       // Tus grabaciones tal cual: la celda decide cuál suena.
       const picks = this.instrument.pick(sample.value, params.tension);
       this.instrument.playRecordings(picks, time, params.velocity);
+      // El steel drum dobla las mismas notas, así siempre queda en armonía con las grabaciones.
+      for (const note of picks) this.accompaniment?.note(note, params.subdivision, time, params.velocity * 0.6);
     } else {
       const chord = this.harmony.chord(params.midi, params.tension);
       // Nivel 3: distorsión solo en tensión máxima y solo en los timbres que la piden.
@@ -243,6 +257,20 @@ export class AudioEngine implements AudioEngineApi {
       this.effects.setBrightness(params.brightness, time);
       this.effects.setPan(params.pan, time);
       this.instrument.play(chord, params.subdivision, time, params.velocity, sample.layer);
+    }
+
+    // Pico de emoción (tensión máxima con anomalía fuerte): entra la voz de pico (waterphone, handpan o steel drum).
+    if (this.peakVoices.length && params.tension === 3 && Math.abs(sample.anomaly) > 0.6) {
+      // Si hay varias voces de pico, se turnan.
+      const n = this.peakVoices.length;
+      for (let i = 0; i < n; i++) {
+        const voice = this.peakVoices[(this.peakNext + i) % n];
+        if (voice.ready(time)) {
+          voice.hit(params.midi, time, sample.anomaly > 0);
+          this.peakNext = (this.peakNext + i + 1) % n;
+          break;
+        }
+      }
     }
 
     const event: NoteEvent = {

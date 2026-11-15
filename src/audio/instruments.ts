@@ -50,6 +50,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     baseOctave: 4,
     samples: set("calm", LOW),
     mix: [[0], [0, 2], [0, 2], [0, 1, 2]],
+    peak: ["waterphone", "handpan"],
   },
   // "Bruma": polvo y rayos, agudas y tenues. Partículas sueltas.
   aerosols: {
@@ -60,6 +61,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     volume: -6,
     samples: set("stress", HIGH),
     mix: [[0], [0, 2], [0, 2], [0, 1, 2]],
+    peak: ["steeldrum"],
   },
   // "Pastoral": viento y agua, agudas. Aire claro y ligero.
   forest: {
@@ -69,6 +71,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     baseOctave: 3,
     samples: set("calm", HIGH),
     mix: [[0], [0, 2], [0, 2], [0, 2, 4]],
+    accompany: "steeldrum",
   },
   // "Respiración": polvo y rayos, graves y densos. Pesado, se acumula.
   co2: {
@@ -84,6 +87,155 @@ export const PRESETS: Record<string, InstrumentPreset> = {
 
 export function presetFor(discId: string): InstrumentPreset {
   return PRESETS[discId] ?? PRESETS.default;
+}
+
+/**
+ * Waterphone sintetizado (no hay grabación): parciales inarmónicos metálicos, vibrato lento,
+ * un deslizamiento de tono como el agua moviéndose dentro del instrumento y mucha reverb.
+ * Solo suena en los picos de emoción (ver AudioEngine.step) y con enfriamiento, para que sea especial.
+ */
+export interface PeakVoice {
+  ready(time: number): boolean;
+  /** Toca el momento de pico. `positive` = anomalía positiva. */
+  hit(midi: number, time: number, positive: boolean): void;
+  dispose(): void;
+}
+
+export class Waterphone implements PeakVoice {
+  private synth: Tone.FMSynth;
+  private vibrato: Tone.Vibrato;
+  private reverb: Tone.Reverb;
+  private lastAt = -Infinity;
+
+  /** Segundos mínimos entre dos apariciones. */
+  static readonly COOLDOWN = 9;
+
+  constructor(destination: Tone.InputNode) {
+    this.reverb = new Tone.Reverb({ decay: 6, wet: 0.65 });
+    this.vibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.3 });
+    this.synth = new Tone.FMSynth({
+      harmonicity: 2.76, // inarmónico: sonido de metal frotado
+      modulationIndex: 6,
+      oscillator: { type: "sine" },
+      modulation: { type: "triangle" },
+      envelope: { attack: 0.9, decay: 0.5, sustain: 0.7, release: 3.5 },
+      modulationEnvelope: { attack: 1.2, decay: 0.5, sustain: 0.5, release: 3 },
+    });
+    this.synth.volume.value = -14;
+    this.synth.chain(this.vibrato, this.reverb, destination);
+  }
+
+  /** true si ya pasó el enfriamiento. */
+  ready(time: number): boolean {
+    return time - this.lastAt >= Waterphone.COOLDOWN;
+  }
+
+  /** Nota larga que se curva hacia arriba (emoción alta) o abajo, como agua que se mueve. */
+  hit(midi: number, time: number, up: boolean): void {
+    this.lastAt = time;
+    const from = Tone.Frequency(midi + 12, "midi").toFrequency();
+    const to = from * Math.pow(2, (up ? 1.5 : -1.5) / 12);
+    this.synth.triggerAttack(from, time, 0.7);
+    this.synth.frequency.setValueAtTime(from, time + 0.6);
+    this.synth.frequency.exponentialRampToValueAtTime(to, time + 3.2);
+    this.synth.triggerRelease(time + 3.4);
+  }
+
+  dispose(): void {
+    this.synth.dispose();
+    this.vibrato.dispose();
+    this.reverb.dispose();
+  }
+}
+
+/** Handpan sintetizado: golpes suaves y redondos con 2.º y 3.er parcial, en arpegio. */
+export class Handpan implements PeakVoice {
+  private synth: Tone.PolySynth;
+  private reverb: Tone.Reverb;
+  private lastAt = -Infinity;
+  static readonly COOLDOWN = 8;
+
+  constructor(destination: Tone.InputNode) {
+    this.reverb = new Tone.Reverb({ decay: 3.5, wet: 0.4 });
+    this.synth = new Tone.PolySynth(Tone.FMSynth, {
+      harmonicity: 2,
+      modulationIndex: 1.4,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.004, decay: 1.6, sustain: 0, release: 1.6 },
+      modulationEnvelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.5 },
+    } as never);
+    this.synth.volume.value = -10;
+    this.synth.chain(this.reverb, destination);
+  }
+
+  ready(time: number): boolean {
+    return time - this.lastAt >= Handpan.COOLDOWN;
+  }
+
+  hit(midi: number, time: number, up: boolean): void {
+    this.lastAt = time;
+    const steps = up ? [0, 4, 7, 12, 16] : [12, 7, 4, 0, -5];
+    steps.forEach((o, i) =>
+      this.synth.triggerAttackRelease(Tone.Frequency(midi + o, "midi").toNote(), "2n", time + i * 0.22, 0.75),
+    );
+  }
+
+  dispose(): void {
+    this.synth.dispose();
+    this.reverb.dispose();
+  }
+}
+
+/** Steel drum sintetizado: tono brillante de octava con ataque seco, en redoble rápido. */
+export class SteelDrum implements PeakVoice {
+  private synth: Tone.PolySynth;
+  private reverb: Tone.Reverb;
+  private lastAt = -Infinity;
+  static readonly COOLDOWN = 7;
+
+  constructor(destination: Tone.InputNode) {
+    this.reverb = new Tone.Reverb({ decay: 2, wet: 0.3 });
+    this.synth = new Tone.PolySynth(Tone.FMSynth, {
+      harmonicity: 3.01,
+      modulationIndex: 3,
+      oscillator: { type: "sine" },
+      modulation: { type: "triangle" },
+      envelope: { attack: 0.002, decay: 0.7, sustain: 0, release: 0.7 },
+      modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 },
+    } as never);
+    this.synth.volume.value = -12;
+    this.synth.chain(this.reverb, destination);
+  }
+
+  ready(time: number): boolean {
+    return time - this.lastAt >= SteelDrum.COOLDOWN;
+  }
+
+  /** Un golpe suelto con la misma nota que suena en la grabación (acompañamiento continuo). */
+  note(note: string, duration: Tone.Unit.Time, time: number, velocity = 0.5): void {
+    this.synth.triggerAttackRelease(note, duration, time, velocity);
+  }
+
+  hit(midi: number, time: number, up: boolean): void {
+    this.lastAt = time;
+    const base = midi + 12;
+    const pattern = up ? [0, 4, 7, 4, 7, 12] : [12, 7, 4, 7, 4, 0];
+    pattern.forEach((o, i) =>
+      this.synth.triggerAttackRelease(Tone.Frequency(base + o, "midi").toNote(), "8n", time + i * 0.11, 0.7),
+    );
+  }
+
+  dispose(): void {
+    this.synth.dispose();
+    this.reverb.dispose();
+  }
+}
+
+export function createPeakVoice(name: NonNullable<InstrumentPreset["peak"]>[number], dest: Tone.InputNode): PeakVoice {
+  if (name === "handpan") return new Handpan(dest);
+  if (name === "steeldrum") return new SteelDrum(dest);
+  return new Waterphone(dest);
 }
 
 type Voice = Tone.PolySynth | Tone.Sampler;
