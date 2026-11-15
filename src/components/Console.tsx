@@ -55,8 +55,10 @@ export function NowPlaying(props: {
       <div className="suena">
         <div className="suena-texto">
           <p className="eyebrow">{t('Tocadiscos', 'Turntable')}</p>
-          <p className="suena-titulo">{t('Vacío', 'Empty')}</p>
-          <p className="suena-detalle">{t('Arrastra aquí un vinilo, o elige uno y pulsa reproducir.', 'Drag a record here, or choose one and press play.')}</p>
+          <p className="suena-linea">
+            <span className="suena-titulo">{t('Vacío', 'Empty')}</span>
+            <span className="suena-detalle">{t('Arrastra aquí un vinilo, o elige uno y pulsa reproducir.', 'Drag a record here, or choose one and press play.')}</span>
+          </p>
         </div>
       </div>
     )
@@ -65,10 +67,13 @@ export function NowPlaying(props: {
     <div className="suena">
       <div className="suena-texto">
         <p className="eyebrow">{playing ? t('Ahora suena', 'Now playing') : t('En pausa', 'Paused')}</p>
-        <p className="suena-titulo">{disc.title}</p>
-        <p className="suena-detalle">
-          {t('Fotograma', 'Frame')} {frame + 1} {t('de', 'of')} {disc.frames.length} · {t('tensión', 'tension')}{' '}
-          {tensionWord(disc.frames[frame].anomaly, lang)}
+        {/* Título y detalle en un mismo renglón; si no caben, el detalle baja completo */}
+        <p className="suena-linea">
+          <span className="suena-titulo">{disc.title}</span>
+          <span className="suena-detalle">
+            {t('Fotograma', 'Frame')} {frame + 1} {t('de', 'of')} {disc.frames.length} · {t('tensión', 'tension')}{' '}
+            {tensionWord(disc.frames[frame].anomaly, lang)}
+          </span>
         </p>
       </div>
       <div className="suena-acciones">

@@ -7,12 +7,13 @@ import { COLS, audioFrames, loadDiscData } from './data/realData'
 import type { DataMap } from './data/realData'
 import { useSettings } from './hooks/useSettings'
 import mosaico from './assets/fieltro/mosaico.webp'
-import { RecordImg, TlalliImg, WindowImg } from './components/Felt'
+import { RecordImg, TlalliImg } from './components/Felt'
 import { NowPlaying, Turntable } from './components/Console'
 import { DiscInfo, Shelf } from './components/Shelf'
 import { Bubbles } from './components/Tlalli'
 import { Pizarron } from './components/Pizarron'
 import { Telon } from './components/Telon'
+import { Ventanal } from './components/Ventanal'
 import type { Message } from './components/Tlalli'
 import { LangContext, pick } from './i18n'
 import type { Lang, Text } from './i18n'
@@ -486,13 +487,15 @@ export default function App() {
 
         <div className="escenario">
         <section className="lado-mueble" aria-label={t('Vinilos y tocadiscos', 'Records and turntable')} inert={view !== 'sala'}>
-          <WindowImg />
-          <DiscInfo
-            disc={selected}
-            isCurrent={selected !== null && selected.id === currentId}
-            onPlace={(d) => place(d, true)}
-            onLearn={learnMore}
-          />
+          {/* El cielo del ventanal sigue al disco que está en el tocadiscos */}
+          <Ventanal disc={current} playing={playing} frame={shownFrame} still={settings.reduceMotion}>
+            <DiscInfo
+              disc={selected}
+              isCurrent={selected !== null && selected.id === currentId}
+              onPlace={(d) => place(d, true)}
+              onLearn={learnMore}
+            />
+          </Ventanal>
           <div className="buro">
             <div className="buro-encima">
               <Turntable

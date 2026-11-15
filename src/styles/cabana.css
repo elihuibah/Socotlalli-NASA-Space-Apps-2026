@@ -339,7 +339,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 28px;
   min-height: 0;
-  padding: clamp(62px, 10vh, 80px) var(--gutter) 0;
+  padding: clamp(52px, 8vh, 76px) var(--gutter) 0;
 }
 @media (min-width: 900px) {
   .cab-main {
@@ -356,7 +356,6 @@
   gap: 14px 16px;
   align-items: start;
 }
-.ventana,
 .tapete {
   display: none;
 }
@@ -530,64 +529,74 @@
   color: var(--tinta);
 }
 
-/* ---------- Ficha del vinilo: solo tipografía sobre la pared ---------- */
+/* ---------- Ficha del vinilo: solo tipografía, sobre el cielo del ventanal ---------- */
 .lado-mueble {
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: clamp(8px, 1.6vh, 16px);
   min-width: 0;
-}
-/* La ventana cuelga en la pared de la sala, arriba a la derecha, si hay sitio */
-@media (min-width: 1240px) and (min-height: 600px) {
-  .ventana {
-    display: block;
-    position: absolute;
-    right: clamp(4px, 1vw, 18px);
-    top: 0;
-    width: min(clamp(130px, 11vw, 190px), 22vh);
-    height: auto;
-    filter: drop-shadow(0 6px 5px rgba(20, 12, 8, 0.55));
-    pointer-events: none;
-  }
-  .lado-mueble .ficha {
-    padding-right: min(clamp(160px, 14vw, 230px), 27vh);
-  }
 }
 .ficha {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: clamp(4px, 1.6vh, 22px) clamp(6px, 1.6vw, 22px) clamp(12px, 3vh, 30px);
 }
 .ficha h2 {
-  font-size: clamp(1.7rem, min(3.7vw, 6.2vh), 3.4rem);
+  font-size: clamp(1.6rem, min(3.2vw, 5.4vh), 3rem);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
 .ficha-como {
-  max-width: 54ch;
   color: var(--arena);
+  line-height: 1.42;
 }
-.ficha-pie {
+/* Título y, a su lado, el botón del vinilo (reproducir o «Conocer más») */
+.ficha-cabeza {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 22px;
-  padding-top: 8px;
+  gap: 6px clamp(14px, 1.8vw, 26px);
+}
+.ficha-cabeza .btn-fieltro {
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 14px;
+}
+.ficha-cabeza .btn-fieltro::after {
+  inset: 4px;
+}
+.ficha-cabeza .btn-redondo {
+  width: 42px;
+  height: 42px;
+}
+.ficha-cabeza .btn-redondo::after {
+  inset: 4px;
 }
 .ficha-datos {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--arena);
 }
+/* Escritorio: el ventanal mide lo mismo con cualquier vinilo. La letra de la descripción se
+   ajusta al ancho del ventanal para que la más larga quepa en tres renglones (ventanal.css). */
+@media (min-width: 900px) and (min-height: 600px) {
+  .ventanal {
+    min-height: clamp(176px, 29.6vh, 310px);
+  }
+  .ventanal .ficha-como {
+    font-size: clamp(0.875rem, calc((100cqw * var(--col) - 44px) / 39.5), 1.0625rem);
+  }
+}
 
-/* ---------- Buró: encima, el tocadiscos y a su lado los vinilos ---------- */
+/* ---------- Buró: encima, el tocadiscos y pegado a él el estante de vinilos ---------- */
 .buro {
   margin-top: auto;
   display: flex;
   flex-direction: column;
+  container-type: inline-size; /* el estante y el tocadiscos se miden con el ancho del buró */
 }
 .buro-encima {
   position: relative;
@@ -596,7 +605,7 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: center;
-  gap: 18px clamp(10px, 1.4vw, 22px);
+  gap: 16px clamp(14px, 3.4cqw, 44px);
   padding: 0 clamp(4px, 1vw, 14px);
   margin-bottom: -5px;
 }
@@ -605,7 +614,7 @@
 .tornamesa {
   position: relative;
   flex: none;
-  width: min(100%, clamp(170px, min(18vw, 30vh), 270px));
+  width: min(100%, clamp(150px, min(25cqw, 29vh), 260px));
   aspect-ratio: 320 / 250;
   padding: 0;
   border: 0;
@@ -668,22 +677,95 @@
   transform: rotate(0deg);
 }
 
-/* Vinilos: de frente, recargados en la pared */
+/* Estante de fieltro de dos niveles: dos postes, un asa arqueada y una charola por nivel */
+.estante {
+  /* Lado de cada funda: baja con el alto de la ventana (para que todo quepa sin desplazarse)
+     y con el ancho del buró (para que el estante quepa junto al tocadiscos) */
+  --funda: min(150px, 13.6vh, 17cqw - 22px);
+  --poste: clamp(12px, 1.5cqw, 16px);
+  --sube: calc(var(--funda) * 0.14 + 5px); /* lo que asoma el disco de una funda elegida */
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 16px calc(var(--poste) + 8px) 5px;
+}
+/* Postes: llegan hasta el buró; cada uno lleva dos clavijas claras, como el mueble de madera */
+.estante-poste {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: var(--poste);
+  border-radius: 9px 9px 3px 3px;
+  background-color: var(--pino-canto);
+  background-image:
+    radial-gradient(circle at 50% 46%, var(--amarillo) 0 3px, rgba(20, 12, 8, 0.45) 3.4px 4.6px, transparent 5px),
+    radial-gradient(circle at 50% 93%, var(--amarillo) 0 3px, rgba(20, 12, 8, 0.45) 3.4px 4.6px, transparent 5px),
+    var(--tela-mosaico);
+  background-blend-mode: normal, normal, soft-light;
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.24), inset -2px 0 3px rgba(20, 12, 8, 0.3), 0 4px 5px rgba(20, 12, 8, 0.45);
+}
+.estante-poste.is-izq {
+  left: 0;
+}
+.estante-poste.is-der {
+  right: 0;
+}
+/* Asa: un travesaño con el lomo arqueado, de poste a poste */
+.estante-asa {
+  position: absolute;
+  top: 2px;
+  left: calc(var(--poste) - 2px);
+  right: calc(var(--poste) - 2px);
+  z-index: 2;
+  height: 15px;
+  border-radius: 50% 50% 5px 5px / 100% 100% 5px 5px;
+  background-color: var(--pino);
+  background-image: var(--tela-mosaico);
+  background-blend-mode: soft-light;
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 3px rgba(20, 12, 8, 0.3), 0 3px 4px rgba(20, 12, 8, 0.4);
+}
+.estante-nivel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+/* Sobre el nivel de abajo queda el hueco justo para que asome el disco de una funda elegida */
+.estante-nivel + .estante-nivel {
+  padding-top: var(--sube);
+}
+/* Charola: tabla con un pequeño borde al frente; las fundas se apoyan dentro */
+.estante-charola {
+  position: relative;
+  z-index: 2;
+  height: 13px;
+  margin: -4px -8px 0;
+  border-radius: 5px;
+  background-color: var(--pino);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(46, 34, 28, 0.42) 0 6px, transparent 6px 12px),
+    var(--tela-mosaico);
+  background-size: 100% 1.5px, auto;
+  background-position: 0 50%, 0 0;
+  background-repeat: no-repeat, repeat;
+  background-blend-mode: normal, soft-light;
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.28), inset 0 -3px 3px rgba(20, 12, 8, 0.3), 0 4px 5px rgba(20, 12, 8, 0.45);
+}
+/* Vinilos: de frente, cuatro por nivel */
 .fundas {
-  /* Lado de cada funda: baja con la altura de la ventana para que las dos filas quepan sin desplazarse */
-  --funda: min(158px, 12.5vh);
-  flex: 1 1 320px;
-  min-width: 0;
-  /* Cuatro vinilos por fila; los de más van debajo, en la fila siguiente */
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, var(--funda)));
+  grid-template-columns: repeat(4, var(--funda));
   justify-content: center;
   align-items: end;
-  column-gap: clamp(8px, 1.1vw, 16px);
-  /* Entre filas cabe lo que sube el disco al elegir una funda (30 % de su alto) y la etiqueta "Sonando",
-     para que el disco de la fila de abajo no tape las fundas de arriba. */
-  row-gap: calc(var(--funda) * 0.3 + 12px);
-  padding-bottom: 5px;
+  column-gap: clamp(7px, 1.2cqw, 14px);
+}
+/* Celular: el estante ocupa todo el ancho, debajo del tocadiscos */
+@media (max-width: 899px) {
+  .estante {
+    --funda: min(150px, (100cqw - 96px) / 4);
+  }
 }
 .funda {
   position: relative;
@@ -728,7 +810,7 @@
   height: 100%;
 }
 .funda.is-selected .funda-disco {
-  transform: translateY(-30%);
+  transform: translateY(-16%);
 }
 /* El disco está en el tocadiscos (o en el aire): la funda se queda sola */
 .funda.is-vacia .funda-cara {
@@ -757,7 +839,7 @@
   text-transform: uppercase;
 }
 .funda-titulo {
-  font-size: clamp(0.78rem, 1.1vw, 1.05rem);
+  font-size: clamp(0.72rem, calc(var(--funda) * 0.145), 1.1rem);
   font-weight: 800;
   line-height: 1.04;
   text-wrap: balance;
@@ -795,7 +877,7 @@
 .buro-cuerpo {
   --tela: var(--pino-canto);
   margin: -4px 14px 0;
-  padding: clamp(12px, 2.2vh, 22px) clamp(12px, 2vw, 24px) clamp(10px, 2vh, 20px);
+  padding: clamp(8px, 1.5vh, 16px) clamp(12px, 2vw, 24px) clamp(7px, 1.3vh, 14px);
   border-radius: 0 0 14px 14px;
 }
 .cajon {
@@ -804,8 +886,8 @@
   display: flex;
   align-items: center;
   gap: clamp(12px, 2vw, 26px);
-  min-height: clamp(72px, 11vh, 128px);
-  padding: clamp(10px, 2vh, 20px) clamp(16px, 2.4vw, 30px);
+  min-height: clamp(60px, 9vh, 96px);
+  padding: clamp(6px, 1.2vh, 14px) clamp(16px, 2.4vw, 30px);
   border-radius: 12px;
   color: var(--tinta);
 }
@@ -823,45 +905,64 @@
 }
 .buro-patas span {
   width: 30px;
-  height: clamp(10px, 2.6vh, 34px);
+  height: clamp(6px, 1.6vh, 22px);
   border-radius: 0 0 8px 8px;
   --tela: #241a16;
 }
 
-/* Lo que suena, dentro del cajón */
+/* Lo que suena, dentro del cajón: a la izquierda el texto, a la derecha pausa y guardar.
+   El texto nunca se corta: si no cabe en un renglón, el detalle baja al siguiente. */
 .suena {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 24px;
+  gap: 8px clamp(12px, 2vw, 24px);
+}
+.suena-texto {
+  flex: 1;
+  min-width: 0;
 }
 .suena .eyebrow {
   color: var(--tinta);
   opacity: 0.8;
+  font-size: 0.75rem;
+}
+.suena-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 14px;
 }
 .suena-titulo {
-  font-size: clamp(1.3rem, 2vw, 1.75rem);
+  font-size: clamp(1.15rem, 1.7vw, 1.5rem);
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 .suena-detalle {
   font-size: 0.9375rem;
   font-weight: 600;
+  line-height: 1.25;
   font-variant-numeric: tabular-nums;
 }
 .suena-acciones {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 .suena .btn-texto {
   color: var(--tinta);
 }
 .suena .btn-redondo {
   --tela: var(--crema);
+  width: 48px;
+  height: 48px;
+}
+.suena .btn-redondo.is-chico {
+  width: 42px;
+  height: 42px;
 }
 
 /* ---------- Crédito ---------- */
@@ -915,17 +1016,37 @@
 /* Ventanas bajitas: se aprieta el espacio vertical para que el buró quepa entero */
 @media (min-width: 900px) and (max-height: 700px) {
   .cab-main {
-    padding-top: 58px;
+    padding-top: 46px;
   }
-  .ficha {
+  .lado-mueble {
     gap: 6px;
-    padding-bottom: 8px;
   }
-  .buro-cuerpo {
-    padding-block: 10px 8px;
+  .ventanal {
+    min-height: 31.4vh;
+  }
+  .estante {
+    --funda: min(150px, 13vh, 17cqw - 22px);
+    padding-block: 11px 3px;
+  }
+  .estante-nivel {
+    padding-top: 5px;
+  }
+  .ficha-cabeza .btn-fieltro {
+    min-height: 36px;
+  }
+  .ficha-cabeza .btn-redondo {
+    width: 38px;
+    height: 38px;
   }
   .cajon {
-    min-height: 64px;
-    padding-block: 8px;
+    min-height: 54px;
+  }
+  .suena .btn-redondo {
+    width: 42px;
+    height: 42px;
+  }
+  .suena .btn-redondo.is-chico {
+    width: 38px;
+    height: 38px;
   }
 }

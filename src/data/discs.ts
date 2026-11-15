@@ -8,7 +8,7 @@ import type { Lang } from '../i18n'
 export type DiscId = 'sst' | 'aerosols' | 'forest' | 'co2' | 'ice' | 'rain' | 'fire' | 'giss'
 
 /** Arte de fieltro de cada vinilo (assets/fieltro/funda-*.webp y disco-*.webp). */
-export type FeltArt = 'sst' | 'ice' | 'veg' | 'co2'
+export type FeltArt = 'sst' | 'ice' | 'veg' | 'co2' | 'cristal' | 'brasas' | 'siglo'
 
 export interface Frame {
   value: number // 0 a 1: valor medio
@@ -179,7 +179,7 @@ export const DISCS: Disc[] = [
   },
   {
     id: 'ice',
-    art: 'ice',
+    art: 'cristal',
     opus: 5,
     title: 'Cristal',
     variable: 'Hielo marino en los polos',
@@ -188,7 +188,7 @@ export const DISCS: Disc[] = [
     wave: 'sine',
     baseMidi: 72,
     color: '#A9D6F0',
-    ink: 'oscura',
+    ink: 'clara',
     howItSounds:
       'Entre más hielo cubre el mar, más notas claras y despacio, con campanitas que tintinean encima. Cuando el hielo se aleja de lo normal del año, entran el waterphone y el handpan y la armonía se tensa.',
     listen: 'Mis polos. Notas frías y espaciadas: donde hay hielo, hay sonido.',
@@ -233,7 +233,7 @@ export const DISCS: Disc[] = [
   },
   {
     id: 'fire',
-    art: 'co2',
+    art: 'brasas',
     opus: 7,
     title: 'Brasas',
     variable: 'Incendios activos, mes a mes de 2008',
@@ -260,7 +260,7 @@ export const DISCS: Disc[] = [
   },
   {
     id: 'giss',
-    art: 'ice',
+    art: 'siglo',
     opus: 8,
     title: 'Siglo de calor',
     variable: 'Temperatura global, de 1885 a 2021',
