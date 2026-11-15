@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { Disc } from '../data/discs'
+import { IconArrow } from './Art'
 import {
   COLS,
   ROWS,
@@ -115,22 +116,25 @@ export function Pizarron(props: {
     <section className="lado-pizarron" aria-label="Pizarrón: datos y mapa" inert={!active}>
       <div className="piz-marco fieltro">
         <div className="pizarron fieltro">
+          {/* Encabezado: qué disco es y qué mide; a la derecha, el regreso a la sala */}
           <header className="piz-titulo">
-            <p className="eyebrow">
-              Op. {disc.opus} · {disc.variable}
-            </p>
-            <button type="button" className="btn-texto piz-volver" onClick={onBack}>
-              <span aria-hidden="true">←</span> Volver al tocadiscos
-            </button>
-            <div className="piz-titulo-linea">
+            <div className="piz-titulo-texto">
+              <p className="eyebrow">
+                Op. {disc.opus} · {disc.variable}
+              </p>
               <h2>{d?.title ?? disc.title}</h2>
               {d && <p className="piz-mide">{shortMeasure(d)}</p>}
             </div>
+            <button type="button" className="btn-fieltro fieltro cosido piz-volver" onClick={onBack}>
+              <IconArrow back /> Volver al tocadiscos
+            </button>
           </header>
 
           {!d ? (
             <p className="piz-cargando">{error ? `No pude leer los datos: ${error}` : 'Cargando los datos del satélite…'}</p>
           ) : (
+            /* Dos columnas que no cambian de un disco a otro:
+               izquierda = modos, mapa y línea de tiempo; derecha = «Este lugar» y «Todo el mapa». */
             <div className="piz-cuerpo">
               <div className="piz-izq">
                 <div className="piz-fila-modos">
@@ -174,9 +178,10 @@ export function Pizarron(props: {
 
               <aside className="piz-datos" aria-label="Estadísticas">
                 {cell === null ? (
-                  <div className="piz-lugar is-vacio">
-                    <p className="eyebrow">Un lugar</p>
-                    <p>Toca el mapa para ver los datos de ese lugar.</p>
+                  <div className="piz-tarjeta piz-lugar is-vacio">
+                    <p className="eyebrow">Este lugar</p>
+                    <p className="piz-lugar-nombre">Elige un lugar</p>
+                    <p className="piz-sin-dato">Toca el mapa y aquí verás cuánto mide ese lugar y cómo se compara con lo normal.</p>
                   </div>
                 ) : (
                   <CellStats d={d} frame={frame} cell={cell} place={placeOf(d, frame, cell, data.sst?.mask)} />
@@ -197,17 +202,10 @@ export function Pizarron(props: {
                   )
                 )}
               </aside>
-
-              <MapSummaryView d={d} frame={frame} seaMask={data.sst?.mask} onPick={pick} />
             </div>
           )}
 
           {d && <p className="piz-credito">{d.credit}</p>}
-        </div>
-        <div className="piz-repisa" aria-hidden="true">
-          <span className="gis" />
-          <span className="gis is-amarillo" />
-          <span className="borrador" />
         </div>
       </div>
     </section>
@@ -342,7 +340,8 @@ function Timeline(props: {
 }
 
 // ---- Estadísticas -----------------------------------------------------------
-/** Todo el mapa en esta fecha: promedio, lo más alto y lo más bajo (con botón para ir ahí). */
+/** Todo el mapa en esta fecha: promedio, lo más alto y lo más bajo (con botón para ir ahí).
+ *  Siempre al pie de la columna derecha, con las mismas tres filas en todos los discos. */
 function MapSummaryView(props: { d: DiscData; frame: number; seaMask?: number[]; onPick: (i: number) => void }) {
   const { d, frame, seaMask, onPick } = props
   const summary = summarize(d, frame)
@@ -352,35 +351,34 @@ function MapSummaryView(props: { d: DiscData; frame: number; seaMask?: number[];
     return isGlobe(d) ? capitalize(p.detail) : p.name
   }
   return (
-    <div className="piz-resumen">
+    <div className="piz-tarjeta piz-resumen">
       <p className="eyebrow">Todo el mapa · {frameLabel(d, frame)}</p>
       {summary ? (
         <dl className="piz-cifras">
           <div>
-            <dt>Promedio</dt>
             <dd>{formatValue(d, summary.mean)}</dd>
+            <dt>Promedio</dt>
           </div>
           <div>
+            <dd>
+              <button type="button" className="piz-ir" onClick={() => onPick(summary.maxIndex)} title={`Ir a ${where(summary.maxIndex)}`}>
+                {formatValue(d, summary.max)}
+              </button>
+            </dd>
             <dt>Lo más alto</dt>
-            <dd>
-              <button type="button" className="piz-ir" onClick={() => onPick(summary.maxIndex)} title="Ir ahí en el mapa">
-                {formatValue(d, summary.max)} <span>{where(summary.maxIndex)}</span>
-              </button>
-            </dd>
           </div>
           <div>
-            <dt>Lo más bajo</dt>
             <dd>
-              <button type="button" className="piz-ir" onClick={() => onPick(summary.minIndex)} title="Ir ahí en el mapa">
-                {formatValue(d, summary.min)} <span>{where(summary.minIndex)}</span>
+              <button type="button" className="piz-ir" onClick={() => onPick(summary.minIndex)} title={`Ir a ${where(summary.minIndex)}`}>
+                {formatValue(d, summary.min)}
               </button>
             </dd>
+            <dt>Lo más bajo</dt>
           </div>
         </dl>
       ) : (
-        <p>En esta vista no hay celdas con dato.</p>
+        <p className="piz-sin-dato">En esta vista no hay celdas con dato.</p>
       )}
-      <p className="piz-frase">{d.frames[frame].text}</p>
     </div>
   )
 }
@@ -390,7 +388,7 @@ function CellStats({ d, frame, cell, place }: { d: DiscData; frame: number; cell
   const ok = hasData(d, frame, cell)
   const a = f.anomaly[cell]
   return (
-    <div className="piz-lugar">
+    <div className="piz-tarjeta piz-lugar">
       <p className="eyebrow">Este lugar</p>
       <p className="piz-lugar-nombre">
         {place.name}

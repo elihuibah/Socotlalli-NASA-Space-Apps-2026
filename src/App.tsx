@@ -19,7 +19,7 @@ const INTRO = [
   'Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.',
   'Los satélites de la NASA me observan. Con lo que ven, hice música.',
   'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
-  'Luego arrástralo al tocadiscos, o pulsa «Poner este disco».',
+  'Luego arrástralo al tocadiscos, o pulsa el botón de reproducir.',
   'Cuando un disco esté sonando, pulsa «Conocer más» y te llevo al pizarrón a ver sus números.',
 ]
 const HOW_TO = [
@@ -58,7 +58,7 @@ export default function App() {
   const [dataErrors, setDataErrors] = useState<Partial<Record<DiscId, string>>>({})
   const [view, setView] = useState<View>('sala')
   const [walking, setWalking] = useState<Walk>(null)
-  const [listenCell, setListenCell] = useState<number | null>(null) // celda del modo "lugar en el tiempo"
+  const [landing, setLanding] = useState(false) // Tlalli acaba de llegar y guarda sus pies
 
   const nextId = useRef(1)
   const covers = useRef(new Map<DiscId, HTMLButtonElement>())
@@ -68,7 +68,7 @@ export default function App() {
   const tenseSaid = useRef(new Set<DiscId>())
   const flyEl = useRef<HTMLDivElement | null>(null)
   const walkTimer = useRef<number | undefined>(undefined)
-  const loadToken = useRef(0) // descarta cargas de un disco que ya se quitó del plato
+  const landTimer = useRef<number | undefined>(undefined)
 
   // ---- Datos reales: los disc.json que escribe pipeline/ ----------------------
   useEffect(() => {
@@ -136,12 +136,24 @@ export default function App() {
     setGuide(null)
     const ms = settings.reduceMotion ? 0 : WALK_MS
     setWalking(ms ? dir : null)
+    setLanding(false)
+    window.clearTimeout(landTimer.current)
     walkTimer.current = window.setTimeout(() => {
       setWalking(null)
+      if (ms) {
+        setLanding(true)
+        landTimer.current = window.setTimeout(() => setLanding(false), 560)
+      }
       document.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true })
     }, ms)
   }
-  useEffect(() => () => window.clearTimeout(walkTimer.current), [])
+  useEffect(
+    () => () => {
+      window.clearTimeout(walkTimer.current)
+      window.clearTimeout(landTimer.current)
+    },
+    [],
+  )
 
   // El pizarrón siempre muestra el disco que está en el tocadiscos.
   const learnMore = (d: Disc) => {
@@ -357,11 +369,12 @@ export default function App() {
         </svg>
         <div className="cabin-luces" />
         <div className="cabin-piso" />
-        <div className="tapete" />
       </div>
 
       <header className="cab-header">
-        <p className="logo">Socotlalli</p>
+        <a className="logo" href={import.meta.env.BASE_URL} aria-label="Socotlalli, ir al inicio">
+          Socotlalli
+        </a>
         <nav aria-label="Opciones" className="cab-nav">
           <button type="button" className="btn-texto" onClick={startHowTo}>
             Cómo se escucha
@@ -370,24 +383,22 @@ export default function App() {
             Accesibilidad
           </button>
         </nav>
-        {a11yOpen && (
-          <div id="panel-a11y" className="a11y-panel fieltro cosido">
-            <label>
-              <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
-              Reducir movimiento
-            </label>
-            <label>
-              <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
-              Texto más grande
-            </label>
-            <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
-          </div>
-        )}
+        {/* Siempre está en la página para poder animar su entrada y salida (cabana.css) */}
+        <div id="panel-a11y" className={`a11y-panel fieltro cosido${a11yOpen ? ' is-open' : ''}`} inert={!a11yOpen}>
+          <label>
+            <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
+            Reducir movimiento
+          </label>
+          <label>
+            <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
+            Texto más grande
+          </label>
+          <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
+        </div>
       </header>
 
       <main className="cab-main">
         <section className="lado-tlalli" aria-label="Tlalli">
-          <WindowImg />
           <Bubbles
             messages={messages}
             canAdvance={guide !== null}
@@ -396,18 +407,24 @@ export default function App() {
             onSkip={skipGuide}
           />
           <div className="tlalli-lugar">
-            <TlalliImg listening={playing} walking={walking} />
+            <TlalliImg
+              listening={playing}
+              walking={walking}
+              landing={landing}
+              still={settings.reduceMotion}
+              onLaugh={() => say('¡Ja, ja, ja! Me haces cosquillas.')}
+            />
           </div>
+          <div className="tapete" aria-hidden="true" />
         </section>
 
         <div className="escenario">
         <section className="lado-mueble" aria-label="Vinilos y tocadiscos" inert={view !== 'sala'}>
+          <WindowImg />
           <DiscInfo
             disc={selected}
             isCurrent={selected !== null && selected.id === currentId}
-            playing={playing}
             onPlace={(d) => place(d, true)}
-            onToggle={toggle}
             onLearn={learnMore}
           />
           <div className="buro">
@@ -436,7 +453,7 @@ export default function App() {
             <div className="buro-cuerpo">
               <div className="cajon cosido">
                 <span className="perilla" aria-hidden="true" />
-                <NowPlaying disc={current} playing={playing} frame={shownFrame} onToggle={toggle} onEject={eject} onLearn={learnMore} />
+                <NowPlaying disc={current} playing={playing} frame={shownFrame} onToggle={toggle} onEject={eject} />
                 <span className="perilla" aria-hidden="true" />
               </div>
             </div>

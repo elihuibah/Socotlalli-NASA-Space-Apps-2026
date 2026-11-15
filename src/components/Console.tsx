@@ -1,6 +1,6 @@
 import type { Disc } from '../data/discs'
 import { tensionWord } from '../data/discs'
-import { IconPause, IconPlay } from './Art'
+import { IconEject, IconPause, IconPlay } from './Art'
 import { RecordImg, TurntableArmImg, TurntableBoxImg } from './Felt'
 
 /**
@@ -37,22 +37,23 @@ export function Turntable(props: {
   )
 }
 
-/** Lo que suena ahora, escrito en el cajón del buró. */
+/** Lo que suena ahora, en el cajón del buró: aquí están la pausa y guardar el disco. */
 export function NowPlaying(props: {
   disc: Disc | null
   playing: boolean
   frame: number
   onToggle: () => void
   onEject: () => void
-  onLearn: (d: Disc) => void
 }) {
   const { disc, playing, frame } = props
   if (!disc) {
     return (
       <div className="suena">
-        <p className="eyebrow">Tocadiscos</p>
-        <p className="suena-titulo">Vacío</p>
-        <p className="suena-detalle">Arrastra aquí un vinilo, o elige uno y pulsa «Poner este disco».</p>
+        <div className="suena-texto">
+          <p className="eyebrow">Tocadiscos</p>
+          <p className="suena-titulo">Vacío</p>
+          <p className="suena-detalle">Arrastra aquí un vinilo, o elige uno y pulsa reproducir.</p>
+        </div>
       </div>
     )
   }
@@ -66,14 +67,17 @@ export function NowPlaying(props: {
         </p>
       </div>
       <div className="suena-acciones">
-        <button type="button" className="btn-redondo fieltro cosido" onClick={props.onToggle} aria-label={playing ? 'Pausar' : 'Reanudar'}>
+        <button
+          type="button"
+          className="btn-redondo fieltro cosido"
+          onClick={props.onToggle}
+          aria-label={playing ? 'Pausar' : 'Reanudar'}
+          title={playing ? 'Pausar' : 'Reanudar'}
+        >
           {playing ? <IconPause /> : <IconPlay />}
         </button>
-        <button type="button" className="btn-texto btn-conocer" onClick={() => props.onLearn(disc)}>
-          Conocer más <span aria-hidden="true">→</span>
-        </button>
-        <button type="button" className="btn-texto" onClick={props.onEject}>
-          Guardar el disco
+        <button type="button" className="btn-redondo is-chico fieltro cosido" onClick={props.onEject} aria-label="Guardar el disco en su funda" title="Guardar el disco">
+          <IconEject />
         </button>
       </div>
     </div>
