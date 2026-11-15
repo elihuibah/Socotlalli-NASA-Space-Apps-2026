@@ -41,6 +41,8 @@ export class AudioEngine implements AudioEngineApi {
   private eventId: number | null = null;
   private lastFrame = -1;
   private playing = false;
+  /** Sube con cada play() y pause(): descarta un play() que quedó esperando. */
+  private playToken = 0;
   private noteListeners = new Set<NoteCallback>();
   private frameListeners = new Set<FrameCallback>();
 
@@ -61,16 +63,31 @@ export class AudioEngine implements AudioEngineApi {
 
   async play(): Promise<void> {
     if (!this.disc) return;
-    // El navegador bloquea el audio hasta un gesto del usuario.
-    await Tone.start();
-    await Tone.loaded(); // sin esto, las primeras notas con samples no suenan
+    // Si mientras esperamos llega una pausa o se cambia de disco, este play() ya no vale.
+    const token = ++this.playToken;
+    try {
+      // El navegador bloquea el audio hasta un gesto del usuario.
+      await Tone.start();
+      // Sin esto, las primeras notas con samples no suenan. Si alguna grabación falla,
+      // se toca de todos modos con las que sí cargaron.
+      await Tone.loaded();
+    } catch (e) {
+      console.warn("[audio] no cargaron todas las grabaciones", e);
+    }
+    if (token !== this.playToken || !this.disc) return;
     const transport = Tone.getTransport();
-    if (this.eventId === null) this.scheduleNext(transport.seconds + 0.05);
+    if (this.eventId === null) {
+      // Se programa en ticks (no en segundos): el tempo cambia con cada fotograma y
+      // Tone convierte segundos a ticks con el tempo del momento.
+      const lead = Tone.Time(0.05).toTicks();
+      this.scheduleNext(Math.ceil(transport.ticks + lead));
+    }
     transport.start();
     this.playing = true;
   }
 
   pause(): void {
+    this.playToken++;
     const transport = Tone.getTransport();
     transport.pause();
     if (this.eventId !== null) {
@@ -180,13 +197,24 @@ export class AudioEngine implements AudioEngineApi {
   /**
    * Programa un solo paso y, al sonar, programa el siguiente.
    * Así cada nota puede tener su propia duración (densidad rítmica).
+   *
+   * `atTicks` va en ticks del Transport, no en segundos: el tempo cambia con cada
+   * fotograma y, si se sumaran segundos, Tone los convertiría con el tempo nuevo y el
+   * siguiente paso podía caer en el pasado (no suena nunca y la música se calla) o
+   * muy en el futuro (silencio largo).
    */
-  private scheduleNext(at: number): void {
+  private scheduleNext(atTicks: number): void {
     const transport = Tone.getTransport();
     this.eventId = transport.scheduleOnce((time) => {
-      const duration = this.step(time);
-      this.scheduleNext(at + Tone.Time(duration).toSeconds());
-    }, at);
+      let duration: Subdivision = "4n";
+      try {
+        duration = this.step(time);
+      } catch (e) {
+        // Un error en una nota no debe cortar la cadena: se sigue con la siguiente.
+        console.error("[audio] error al tocar un paso", e);
+      }
+      this.scheduleNext(atTicks + Math.round(Tone.Time(duration).toTicks()));
+    }, `${atTicks}i`);
   }
 
   /** Toca una celda y devuelve cuánto dura el paso. */
