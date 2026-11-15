@@ -187,6 +187,7 @@ We used generative AI tools as assistants during development. All AI-assisted ou
 |---|---|---|---|---|
 | Claude | Anthropic | Opus 5.5, Nov 2026 | Project structure; checking and following the visual design, color and responsive layout; structuring the classes that play the recordings and read the NASA data | `src/audio/`, `src/data/`, `src/styles/`, `pipeline/` |
 | Claude | Anthropic | Fable 5.2, Nov 2026 | Built the Python pipeline to download and process NASA visualizations into eight discs. Integrated real data into the React interface, including turntable playback, Tlalli's animation, and the interactive map with real values, historical comparisons, and global summaries. Improved responsive layout and tested core features. | `pipeline/`, `src/App.tsx`, `src/components/`, `src/data/realData.ts`, `src/styles/`, `scripts/` |
+| Claude | Anthropic | Fable 5.2, Nov 2026 |Used to help configure the instruments, as well as to manage rhythm changes by varying the BPM.| calibration.js, index.ts, instruments.ts. Configurations in the 'modes' folder.|
 | ChatGPT | OpenAI | GPT-6, Nov 2026 | Language correction and wording; help implementing the interface | README, `src/components/` |
 
 ### AI References
