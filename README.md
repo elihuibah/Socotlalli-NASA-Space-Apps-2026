@@ -3,7 +3,7 @@
 > Earth's data, for everyone who listens.
 Socoteam · NASA Space Apps Challenge 2026, Ensenada, Baja California, Mexico · Challenge: The Earth Information Jukebox
 
-<img width="1570" height="855" alt="Interfaz" src="https://github.com/user-attachments/assets/8e12bef2-bdc8-4c32-b3ae-6f14e3d179d1" />
+<img width="1920" height="913" alt="image" src="https://github.com/user-attachments/assets/598fb973-7cec-45aa-99cd-db77ac372366" />
 
 ## Summary
 
@@ -31,6 +31,11 @@ Tlalli ("earth" in Nahuatl), the character on screen, guides you and describes a
 | 2 | Bruma | Aerosols | Electric guitar records with chorus, delay & reverbr |
 | 3 | Pastoral | Forest height | Electric guitar records with chorus, delay & reverb |
 | 4 | Respiración | Carbon dioxide | Electric guitar records with chorus, delay & reverb |
+| 5 | Cristal| --- | Electric guitar records with chorus, delay & reverb |
+| 6 | Aguacero | --- | Electric guitar records with chorus, delay & reverbr |
+| 7 | Brasas | --- | Electric guitar records with chorus, delay & reverb |
+| 8 | Siglo de calor | --- | Electric guitar records with chorus, delay & reverb |
+
 
 ## How it works
 
@@ -176,7 +181,22 @@ Disc ids: `sst`, `co2`, `aerosols`, `forest`.
 | Dust and lightning recordings (`public/samples/stress`) | Jared Delgado & Bryan Jeronimo | https://drive.google.com/drive/folders/1MhDm0rG35WYnDY_0CcXZww5w3Lj0gDsa?usp=sharing |
 
 ## Use of AI
-- ...
+We used generative AI tools as assistants during development. All AI-assisted output was reviewed, tested and edited by the team, which is responsible for the final project. No audio was generated with AI: the recordings in `public/samples/` were made by team members (see Credits).
+
+| Tool | Provider | Model and access dates | Used for | Where |
+|---|---|---|---|---|
+| Claude | Anthropic | Opus 5.5, Nov 2026 | Project structure; checking and following the visual design, color and responsive layout; structuring the classes that play the recordings and read the NASA data | `src/audio/`, `src/data/`, `src/styles/`, `pipeline/` |
+| Claude | Anthropic | Fable 5.2, Nov 2026 | [what it was used for] | [files] |
+| ChatGPT | OpenAI | GPT-6, Nov 2026 | Language correction and wording; help implementing the interface | README, `src/components/` |
+
+### AI References
+
+Anthropic. (2026). *Claude Opus 5.5* [Large language model]. https://claude.ai
+
+Anthropic. (2026). *Claude Fable 5.2* [Large language model]. https://claude.ai
+
+OpenAI. (2026). *GPT-6* [Large language model]. https://chat.openai.com
+
 ## Team
 
 Socoteam, Ensenada, Baja California, Mexico.
