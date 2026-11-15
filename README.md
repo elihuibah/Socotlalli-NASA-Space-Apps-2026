@@ -192,6 +192,7 @@ Socoteam, Ensenada, Baja California, Mexico.
 **Interface (UI)**
 - Elihú Ibarra: visual direction and interface structure.
 - Bryan Jeronimo: Interface and music structure.
+
 **Logic**
   - ALejandro Segovia: Logic and sound management
   - Jared Delgado: Logic and sound management
