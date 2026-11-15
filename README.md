@@ -10,7 +10,7 @@
 
 ![Screenshot of the interface](docs/screenshot.png)
 
-**Overview**
+**Overview:**
 Socotlali offers a way to explore how we observe Earth's data by turning visual information into sound.
 Traditional Earth data visualization tools primarily rely on maps, charts, and other visual representations, which can create accessibility barriers for people who are blind or have low vision.
 
