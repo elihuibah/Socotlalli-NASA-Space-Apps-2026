@@ -1,22 +1,40 @@
 # Socotlalli
 
-> Earth's data, for everyone who listens. (Replace with the final one-line pitch.)
+> Socotlalli transforms NASA Earth observation visualizations into an interactive musical experience, allowing users to explore environmental patterns through sound.
+**Live Demo**: Socotlalli
 
-**Live demo:** https://socotlalli-nasa-space-apps-2026.vercel.app
-
-**Team:** Socoteam · NASA Space Apps Challenge 2026, Ensenada · Challenge: The Earth Information Jukebox
+**Team**: Socoteam
+**Event**: NASA Space Apps Challenge 2026
+**Location**: Ensenada, Baja California, Mexico
+**Challenge**: The Earth Information Jukebox
 
 ![Screenshot of the interface](docs/screenshot.png)
 
-## Summary
-Socotlalli lets you hear NASA Earth data instead of only seeing it. Most Earth data tools are maps and charts, which people who are blind or have low vision cannot use. Socotlalli shrinks each NASA satellite image to a grid of 32 by 16 numbers and turns those numbers into music that the browser synthesizes live: higher values play higher notes, and the harmony gets tense when a place moves away from normal. You choose one of four "vinyl records" (sea temperature, aerosols, forest height, carbon dioxide), put it on a turntable, and listen. It was made by Socoteam for the NASA Space Apps Challenge 2026, challenge "Earth Information Jukebox".
+**Overview**
+Socotlali offers a way to explore how we observe Earth's data by turning visual information into sound.
+Traditional Earth data visualization tools primarily rely on maps, charts, and other visual representations, which can create accessibility barriers for people who are blind or have low vision.
 
-## How to use it
-1. **Choose a disc.** Pick one of the four vinyl records on the shelf. With a keyboard, use Tab to reach the shelf, the arrow keys (and Home/End) to move between records, and Enter to choose.
-2. **Press play.** Drag the record onto the turntable or press its play button. The first click is what lets the browser play sound.
-3. **Listen in sweep mode.** The sound travels from west to east across the map. Each frame lasts one full sweep, then the next date begins.
-4. **Switch to "one place through time".** Press "Learn more" to go to the blackboard (map and statistics), choose a map cell, and press "Listen to this place only". The same cell then plays date after date. This mode is not offered for forest height (each view is a different place) or aerosols (a single date).
-5. **Learn how to listen.** The "How it sounds" button plays a short audio example for each rule (pitch, tension, stereo position, rhythm, tempo). The Accessibility panel offers "Reduce motion" and "Larger text".
+To address this challenge, Socotlalli processes NASA satellite visualizations into a 32 × 16 numerical grid and translates the resulting values into musical parameters. Higher values produce higher notes, while deviations from normal conditions influence the harmonic tension of the composition.
+
+Users can select from four interactive vinyl records, each representing a different environmental variable:
+Sea surface temperature.
+Atmospheric aerosols.
+Forest height.
+Carbon dioxide.
+
+The audio is synthesized directly in the browser, allowing users to experience changes in Earth's environmental patterns through music.
+Developed by Socoteam for the NASA Space Apps Challenge 2026, under the challenge "The Earth Information Jukebox".
+
+## **Key Features**
+- **Interactive Turntable**: A vinyl-inspired interface for selecting and playing environmental datasets.
+- **Data Sonification**: Converts satellite visualization values into musical parameters.
+- **Real-Time Audio Synthesis**: Generates sound directly in the browser.
+- **Geographic Sweep Mode**: Plays data across the map from west to east.
+- **Location Through Time**: Allows users to listen to the evolution of a selected geographic cell across multiple dates, where supported.
+- **Musical Instrument Differentiation**: Each environmental variable has its own characteristic sound.
+- **Audio Guide**: Demonstrates how pitch, harmonic tension, stereo positioning, rhythm, and tempo represent data.
+- **Accessibility Settings**: Includes keyboard navigation, reduced motion, and larger text options.
+
 ## How it works
 Everything is precomputed once, except the sound, which is generated live in your browser. There is no server.
 
