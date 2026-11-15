@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { Lang } from '../i18n'
 
 export interface Settings {
   reduceMotion: boolean
   largeText: boolean
+  lang: Lang
 }
 
 const KEY = 'socotlalli:ajustes'
@@ -14,7 +16,7 @@ function load(): Settings {
   } catch {
     // Sin matchMedia: se asume movimiento completo.
   }
-  const base: Settings = { reduceMotion: system, largeText: false }
+  const base: Settings = { reduceMotion: system, largeText: false, lang: 'es' }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) return { ...base, ...(JSON.parse(raw) as Partial<Settings>) }
@@ -37,6 +39,7 @@ export function useSettings() {
     const root = document.documentElement
     root.dataset.motion = settings.reduceMotion ? 'reduce' : 'full'
     root.dataset.text = settings.largeText ? 'l' : 'm'
+    root.lang = settings.lang
   }, [settings])
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>

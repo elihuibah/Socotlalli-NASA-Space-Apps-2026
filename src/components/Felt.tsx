@@ -3,6 +3,7 @@
 // La fuente vectorial de cada una está en components/Art.tsx y assets/tlalli.svg.
 import { useEffect, useRef, useState } from 'react'
 import type { DiscId } from '../data/discs'
+import { useT } from '../i18n'
 import discoCo2 from '../assets/fieltro/disco-co2.webp'
 import discoIce from '../assets/fieltro/disco-ice.webp'
 import discoSst from '../assets/fieltro/disco-sst.webp'
@@ -71,6 +72,7 @@ export function TlalliImg(props: {
   const clicks = useRef<number[]>([])
   const timer = useRef<number | undefined>(undefined)
   const [mood, setMood] = useState<'normal' | 'toque' | 'risa'>('normal')
+  const t = useT()
 
   // La mirada: se mueve con variables CSS, sin volver a dibujar el componente.
   useEffect(() => {
@@ -138,7 +140,11 @@ export function TlalliImg(props: {
       ref={fig}
       className={cls}
       onClick={onClick}
-      aria-label={walking ? 'Tlalli va caminando' : 'Tlalli, la Tierra con ojos grandes. Tócala tres veces para hacerla reír'}
+      aria-label={
+        walking
+          ? t('Tlalli va caminando', 'Tlalli is walking')
+          : t('Tlalli, la Tierra con ojos grandes. Tócala tres veces para hacerla reír', 'Tlalli, the Earth with big eyes. Tap her three times to make her laugh')
+      }
     >
       <span className="tlalli-pie is-izq" aria-hidden="true" />
       <span className="tlalli-pie is-der" aria-hidden="true" />

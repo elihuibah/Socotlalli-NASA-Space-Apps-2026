@@ -176,6 +176,8 @@ export interface InstrumentPreset {
   envelope: { attack: number; decay: number; sustain: number; release: number };
   /** Volumen de la voz en dB (para emparejar discos). */
   volume?: number;
+    /** Con grabaciones: qué posiciones suenan juntas según la tensión (índice 0 a 3). */
+  mix?: number[][];
   /** Distorsión máxima 0..1 en tensión 3 (nivel 3). 0 o ausente = sin distorsión. */
   maxDistortion?: number;
   /** Una voz por capa (aerosoles): capa -> oscilador y octava propios. */

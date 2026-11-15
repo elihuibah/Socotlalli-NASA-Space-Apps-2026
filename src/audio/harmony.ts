@@ -1,9 +1,4 @@
-/**
- * Armonía: escalas, grados → MIDI y acordes según la tensión.
- *
- * Regla del plan: escalas y acordes fijos; los datos deciden nota y tensión.
- * Tensión 0 = tríada limpia → 1 = séptimas → 2/3 = segundas menores y tritonos.
- */
+
 import type { TensionLevel } from "./types";
 
 /** Intervalos en semitonos desde la tónica. */
@@ -17,14 +12,14 @@ export const SCALES = {
 export type ScaleName = keyof typeof SCALES;
 
 /**
- * Intervalos (en semitonos desde la nota) que se agregan al acorde
- * según el nivel de tensión.
+ * Más tensión = más color, no más disonancia: todos los acordes son consonantes
+ * (sin segundas menores ni tritonos) y se ajustan a la escala activa.
  */
 export const TENSION_CHORDS: Record<TensionLevel, readonly number[]> = {
   0: [0, 4, 7], // tríada mayor
-  1: [0, 4, 7, 10], // séptima de dominante
-  2: [0, 3, 7, 10, 14], // menor con séptima y novena
-  3: [0, 1, 6, 10], // segunda menor + tritono
+  1: [0, 4, 7, 9], // con sexta
+  2: [0, 4, 7, 14], // con novena (add9)
+  3: [0, 4, 7, 9, 14], // sexta y novena, abierto y brillante
 };
 
 export class Harmony {
@@ -53,13 +48,31 @@ export class Harmony {
     return this.root + octave * 12 + this.scale[step];
   }
 
-  /** Notas MIDI del acorde construido sobre `midi` con la tensión dada. */
+  /** Nota de la escala más cercana a `midi` (en empate, la más grave). */
+  snap(midi: number): number {
+    let best = midi;
+    let bestDist = Infinity;
+    const base = Math.floor((midi - this.root) / 12) * 12 + this.root;
+    for (const octave of [-12, 0, 12]) {
+      for (const step of this.scale) {
+        const candidate = base + octave + step;
+        const dist = Math.abs(candidate - midi);
+        if (dist < bestDist || (dist === bestDist && candidate < best)) {
+          best = candidate;
+          bestDist = dist;
+        }
+      }
+    }
+    return best;
+  }
+
+  /** Notas MIDI del acorde construido sobre `midi` con la tensión dada, dentro de la escala. */
   chord(midi: number, tension: TensionLevel): number[] {
-    return TENSION_CHORDS[tension].map((interval) => midi + interval);
+    const notes = TENSION_CHORDS[tension].map((interval) => this.snap(midi + interval));
+    return [...new Set(notes)];
   }
 }
 
-/** MIDI → nombre de nota ("C4", "F#3"). */
 export function midiToNote(midi: number): string {
   const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const octave = Math.floor(midi / 12) - 1;
