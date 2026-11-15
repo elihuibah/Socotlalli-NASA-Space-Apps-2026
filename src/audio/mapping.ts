@@ -28,16 +28,26 @@ export function cellIndex(disc: Disc, col: number, row: number): number {
   return row * disc.grid.cols + col;
 }
 
-export function hasData(disc: Disc, col: number, row: number): boolean {
-  return disc.mask ? disc.mask[cellIndex(disc, col, row)] === 1 : true;
+/**
+ * Máscara vigente en un fotograma: las vistas del globo traen la suya
+ * (cada vista muestra otra parte del planeta); si no, la del disco.
+ */
+export function maskFor(disc: Disc, frameIndex = 0): number[] | undefined {
+  return disc.frames[frameIndex]?.mask ?? disc.mask;
+}
+
+export function hasData(disc: Disc, col: number, row: number, frameIndex = 0): boolean {
+  const mask = maskFor(disc, frameIndex);
+  return mask ? mask[cellIndex(disc, col, row)] === 1 : true;
 }
 
 /**
  * Desviación media de la celda respecto a sus 4 vecinos con dato, sin escalar (0..1).
  * La calibración del disco decide qué tanto es "mucho".
  */
-export function rawNeighborVariation(values: number[], disc: Disc, col: number, row: number): number {
+export function rawNeighborVariation(disc: Disc, frameIndex: number, col: number, row: number): number {
   const { cols, rows } = disc.grid;
+  const values = disc.frames[frameIndex].values;
   const center = values[cellIndex(disc, col, row)];
   const offsets = [
     [-1, 0],
@@ -51,11 +61,23 @@ export function rawNeighborVariation(values: number[], disc: Disc, col: number, 
     const c = col + dc;
     const r = row + dr;
     if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
-    if (!hasData(disc, c, r)) continue;
+    if (!hasData(disc, c, r, frameIndex)) continue;
     sum += Math.abs(values[cellIndex(disc, c, r)] - center);
     count++;
   }
   return count ? clamp01(sum / count) : 0;
+}
+
+/** Capa con más valor en la celda (aerosoles: polvo, humo, sal, sulfato). */
+export function dominantLayer(disc: Disc, frameIndex: number, i: number): string | undefined {
+  const layers = disc.frames[frameIndex].layers;
+  if (!layers) return undefined;
+  let best: string | undefined;
+  let bestValue = 0;
+  for (const [name, arr] of Object.entries(layers)) {
+    if (arr[i] > bestValue) [best, bestValue] = [name, arr[i]];
+  }
+  return best;
 }
 
 /** Lee una celda de un fotograma con todo lo que necesita el mapeo. */
@@ -68,8 +90,9 @@ export function sampleCell(disc: Disc, frameIndex: number, col: number, row: num
     frameIndex,
     value: frame.values[i],
     anomaly: frame.anomaly[i],
-    neighborVariation: rawNeighborVariation(frame.values, disc, col, row),
-    hasData: hasData(disc, col, row),
+    neighborVariation: rawNeighborVariation(disc, frameIndex, col, row),
+    hasData: hasData(disc, col, row, frameIndex),
+    layer: dominantLayer(disc, frameIndex, i),
   };
 }
 
@@ -111,9 +134,9 @@ export function mapCell(
   return {
     degree,
     midi: harmony.degreeToMidi(degree),
-    tension: tensionFor(sample.anomaly, cal),
+    tension: tensionFor(sample.anomaly, cal, opts.useLatLon),
     brightness: anomalyToBrightness(sample.anomaly),
-    subdivision: subdivisionFor(sample.neighborVariation, cal),
+    subdivision: subdivisionFor(sample.neighborVariation, cal, opts.useLatLon),
     pan: opts.useLatLon ? colToPan(sample.col, disc.grid.cols) : 0,
     velocity: 0.5 + 0.5 * Math.abs(sample.anomaly),
   };
