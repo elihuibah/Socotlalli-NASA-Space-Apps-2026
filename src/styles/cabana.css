@@ -670,19 +670,25 @@
 
 /* Vinilos: de frente, recargados en la pared */
 .fundas {
+  /* Lado de cada funda: baja con la altura de la ventana para que las dos filas quepan sin desplazarse */
+  --funda: min(158px, 12.5vh);
   flex: 1 1 320px;
   min-width: 0;
-  display: flex;
-  align-items: flex-end;
+  /* Cuatro vinilos por fila; los de más van debajo, en la fila siguiente */
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, var(--funda)));
   justify-content: center;
-  gap: clamp(8px, 1.1vw, 16px);
+  align-items: end;
+  column-gap: clamp(8px, 1.1vw, 16px);
+  /* Entre filas cabe lo que sube el disco al elegir una funda (30 % de su alto) y la etiqueta "Sonando",
+     para que el disco de la fila de abajo no tape las fundas de arriba. */
+  row-gap: calc(var(--funda) * 0.3 + 12px);
   padding-bottom: 5px;
 }
 .funda {
   position: relative;
-  flex: 1 1 0;
   min-width: 0;
-  max-width: min(158px, 20vh);
+  width: 100%;
   aspect-ratio: 1;
   padding: 0;
   border: 0;
@@ -877,9 +883,6 @@
   }
 }
 @media (max-width: 899px) {
-  .funda {
-    max-width: 158px;
-  }
   .cab-nav .btn-texto {
     font-size: 0.9375rem;
   }

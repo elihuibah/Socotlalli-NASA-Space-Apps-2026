@@ -92,7 +92,11 @@ PLACES = {"ocean": ocean, "land": land, "auto": auto}
 
 def date_label(date: str) -> str:
     """'2007-08' -> 'Agosto de 2007';  '2020-01-15' -> '15 de enero de 2020'."""
+    if len(date) == 3 and date[0] == "m":  # mes de un promedio de varios años: m01 .. m12
+        return f"{MONTHS[int(date[1:]) - 1].capitalize()}, promedio de varios años"
     parts = date.split("-")
+    if len(parts) == 1:  # solo año (promedio móvil de cinco años)
+        return f"Años {int(parts[0]) - 4} a {parts[0]}"
     month = MONTHS[int(parts[1]) - 1]
     if len(parts) == 3:
         return f"{int(parts[2])} de {month} de {parts[0]}"

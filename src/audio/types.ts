@@ -184,10 +184,26 @@ export interface InstrumentPreset {
   layers?: Record<string, { oscillator: InstrumentPreset["oscillator"]; octaveShift: number }>;
   /** Muestras de public/samples para Tone.Sampler (nivel 3). */
   samples?: { baseUrl: string; urls: Record<string, string> };
+  /**
+   * Segunda grabación que suena a la vez que `samples` (mismas notas). `samples` se queda a volumen
+   * fijo y esta sube y baja con la tensión: `samples2Db` da su volumen en dB por tensión (índices 0 a 3).
+   */
+  samples2?: { baseUrl: string; urls: Record<string, string> };
+  samples2Db?: number[];
   /** Instrumentos sintetizados extra que suenan solo en los picos de emoción (se turnan si hay varios). */
   peak?: ("waterphone" | "handpan" | "steeldrum")[];
-  /** Steel drum que dobla cada nota grabada a lo largo de toda la canción (mismas notas que suenan). */
-  accompany?: "steeldrum";
+  /** Voces sintetizadas que doblan cada nota grabada a lo largo de toda la canción (mismas notas que suenan). */
+  accompany?: ("steeldrum" | "pizzicato" | "drum" | "bells" | "cello" | "guitar")[];
+  /** Capa de ambiente continua que reacciona a la tensión. */
+  ambience?: "static";
+  /** Multiplica el nivel de la capa de ambiente (1 = normal). */
+  ambienceLevel?: number;
+  /** Nivel de la capa de ambiente por tensión (índices 0 a 3); si falta se usa la curva por defecto. */
+  ambienceLevels?: number[];
+  /** Tónica del disco como clase de nota (0 = C, 4 = E...). Por defecto 0 (Do). */
+  rootPitch?: number;
+  /** Escala del disco. Por defecto pentatónica mayor. */
+  scale?: "majorPentatonic" | "minorPentatonic";
   /** Octava base del registro. */
   baseOctave: number;
 }

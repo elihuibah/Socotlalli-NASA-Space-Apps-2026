@@ -24,7 +24,7 @@ import {
 } from "../../audio";
 import "./test.css";
 
-const DISC_IDS = ["fake", "sst", "co2"];
+const DISC_IDS = ["fake", "sst", "co2", "ice", "rain", "fire", "giss"];
 const BASE = import.meta.env.BASE_URL;
 const MAX_NOTES = 24;
 
