@@ -112,6 +112,11 @@ export interface CellSample {
   frameIndex: number;
   value: number;
   anomaly: number;
+  /**
+   * Lo que mide la tensión: cuánto cambió la anomalía de la celda respecto al fotograma
+   * anterior (0 en el primero). En el globo, donde cada fotograma es otro lugar, es |anomalía|.
+   */
+  tensionSignal: number;
   /** Variación respecto a las celdas vecinas, 0..1. */
   neighborVariation: number;
   /** false si la máscara dice que la celda no tiene dato. */

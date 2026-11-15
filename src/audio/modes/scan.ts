@@ -47,13 +47,20 @@ export class ScanMode implements ListeningMode {
     this.frame = ((frameIndex % n) + n) % n;
   }
 
-  /** Celda con dato y mayor |anomalía| de la columna; null si toda la columna está vacía. */
+  /** Celda con dato y mayor señal de tensión (cambio vs. fotograma anterior) de la columna; null si toda la columna está vacía. */
   private pickCell(col: number): CellSample | null {
     let best: CellSample | null = null;
     for (let row = 0; row < this.disc.grid.rows; row++) {
       const s = sampleCell(this.disc, this.frame, col, row);
       if (!s.hasData) continue;
-      if (!best || Math.abs(s.anomaly) > Math.abs(best.anomaly)) best = s;
+      if (
+        !best ||
+        s.tensionSignal > best.tensionSignal ||
+        // Empate (p. ej. primer fotograma, sin anterior): gana la más llamativa.
+        (s.tensionSignal === best.tensionSignal && Math.abs(s.anomaly) > Math.abs(best.anomaly))
+      ) {
+        best = s;
+      }
     }
     return best;
   }

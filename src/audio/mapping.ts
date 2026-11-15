@@ -5,7 +5,7 @@
  * |-------------------------------|----------------------------------------|
  * | Valor de la zona              | Altura dentro de la escala             |
  * | Signo de la anomalía          | Timbre: brillante / oscuro             |
- * | Tamaño de la anomalía         | Tensión armónica                       |
+ * | Cambio vs. fotograma anterior | Tensión armónica                       |
  * | Variación entre vecinos       | Densidad rítmica                       |
  * | Cambio entre fotogramas       | Tempo (ver rhythm.ts)                  |
  * | Longitud y latitud            | Paneo y registro (modo barrido)        |
@@ -68,6 +68,20 @@ export function rawNeighborVariation(disc: Disc, frameIndex: number, col: number
   return count ? clamp01(sum / count) : 0;
 }
 
+/**
+ * Señal de tensión de una celda: cuánto cambió su anomalía respecto al fotograma anterior.
+ * El primer fotograma no tiene anterior y parte de la calma (0). En el globo cada fotograma
+ * es otro lugar, no otra fecha, y en discos de un solo fotograma no hay con qué comparar:
+ * ahí queda la |anomalía|.
+ */
+export function tensionSignal(disc: Disc, frameIndex: number, col: number, row: number): number {
+  const i = cellIndex(disc, col, row);
+  const anomaly = disc.frames[frameIndex].anomaly[i];
+  if (disc.view_mode === "globe" || disc.frames.length < 2) return Math.abs(anomaly);
+  if (frameIndex === 0 || !hasData(disc, col, row, frameIndex - 1)) return 0;
+  return Math.abs(anomaly - disc.frames[frameIndex - 1].anomaly[i]);
+}
+
 /** Capa con más valor en la celda (aerosoles: polvo, humo, sal, sulfato). */
 export function dominantLayer(disc: Disc, frameIndex: number, i: number): string | undefined {
   const layers = disc.frames[frameIndex].layers;
@@ -90,6 +104,7 @@ export function sampleCell(disc: Disc, frameIndex: number, col: number, row: num
     frameIndex,
     value: frame.values[i],
     anomaly: frame.anomaly[i],
+    tensionSignal: tensionSignal(disc, frameIndex, col, row),
     neighborVariation: rawNeighborVariation(disc, frameIndex, col, row),
     hasData: hasData(disc, col, row, frameIndex),
     layer: dominantLayer(disc, frameIndex, i),
@@ -134,7 +149,7 @@ export function mapCell(
   return {
     degree,
     midi: harmony.degreeToMidi(degree),
-    tension: tensionFor(sample.anomaly, cal, opts.useLatLon),
+    tension: tensionFor(sample.tensionSignal, cal, opts.useLatLon),
     brightness: anomalyToBrightness(sample.anomaly),
     subdivision: subdivisionFor(sample.neighborVariation, cal, opts.useLatLon),
     pan: opts.useLatLon ? colToPan(sample.col, disc.grid.cols) : 0,

@@ -10,13 +10,13 @@
  * Es determinista: el mismo disco siempre produce la misma calibración,
  * así que la misma imagen siempre suena igual.
  */
-import { hasData, rawNeighborVariation } from "./mapping";
+import { hasData, rawNeighborVariation, tensionSignal } from "./mapping";
 import { ScanMode } from "./modes/scan";
 import { rawFrameChange } from "./rhythm";
 import type { Disc, Subdivision, TensionLevel } from "./types";
 
 export interface Calibration {
-  /** Cortes de |anomalía| para pasar a tensión 1, 2 y 3. */
+  /** Cortes de la señal de tensión (cambio de anomalía vs. fotograma anterior) para pasar a tensión 1, 2 y 3. */
   tensionCuts: [number, number, number];
   /** Cortes de variación entre vecinos para 8n, 8t y 16n. */
   densityCuts: [number, number, number];
@@ -45,7 +45,9 @@ const DENSITY_PERCENTILES = [0.4, 0.7, 0.9] as const;
  * sonando limpio.
  */
 const TENSION_FLOOR = [0.05, 0.12, 0.25] as const;
-const DENSITY_FLOOR = [0.005, 0.01, 0.02] as const;
+/** Pisos de tensión cuando se mide el cambio entre fotogramas (escala mucho menor que la anomalía). */
+const CHANGE_TENSION_FLOOR = [0.01, 0.025, 0.05] as const;
+const DENSITY_FLOOR =[0.005, 0.01, 0.02] as const;
 const FRAME_CHANGE_FLOOR = 0.005;
 
 /** Valores por defecto (los cortes originales) si no hay datos suficientes. */
@@ -62,11 +64,16 @@ export function calibrate(disc: Disc): Calibration {
   const variations: number[] = [];
   const { cols, rows } = disc.grid;
 
-  disc.frames.forEach((frame, k) => {
+  const byChange = disc.view_mode !== "globe" && disc.frames.length > 1;
+  const tensionFloor = byChange ? CHANGE_TENSION_FLOOR : TENSION_FLOOR;
+
+  disc.frames.forEach((_frame, k) => {
+    // El primer fotograma no tiene anterior: su "cambio" es 0 por definición y no entra a la escala.
+    if (byChange && k === 0) return;
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         if (!hasData(disc, col, row, k)) continue;
-        anomalies.push(Math.abs(frame.anomaly[row * cols + col]));
+        anomalies.push(tensionSignal(disc, k, col, row));
         variations.push(rawNeighborVariation(disc, k, col, row));
       }
     }
@@ -82,7 +89,7 @@ export function calibrate(disc: Disc): Calibration {
     for (let col = 0; col < cols; col++) {
       const s = scan.next();
       if (!s) continue;
-      scanAnomalies.push(Math.abs(s.anomaly));
+      if (!(byChange && k === 0)) scanAnomalies.push(s.tensionSignal);
       scanVariations.push(s.neighborVariation);
     }
   }
@@ -93,17 +100,17 @@ export function calibrate(disc: Disc): Calibration {
   }
 
   return {
-    tensionCuts: cuts(anomalies, TENSION_PERCENTILES, TENSION_FLOOR),
+    tensionCuts: cuts(anomalies, TENSION_PERCENTILES, tensionFloor),
     densityCuts: cuts(variations, DENSITY_PERCENTILES, DENSITY_FLOOR),
-    scanTensionCuts: cuts(scanAnomalies, TENSION_PERCENTILES, TENSION_FLOOR),
+    scanTensionCuts: cuts(scanAnomalies, TENSION_PERCENTILES, tensionFloor),
     scanDensityCuts: cuts(scanVariations, DENSITY_PERCENTILES, DENSITY_FLOOR),
     maxFrameChange: disc.frames.length > 1 ? Math.max(maxChange, FRAME_CHANGE_FLOOR) : DEFAULT_CALIBRATION.maxFrameChange,
   };
 }
 
-/** |anomalía| → nivel de tensión según los cortes del disco. */
-export function tensionFor(anomaly: number, cal: Calibration, scan = false): TensionLevel {
-  return levelFor(Math.abs(anomaly), scan ? cal.scanTensionCuts : cal.tensionCuts) as TensionLevel;
+/** Señal de tensión (cambio vs. fotograma anterior, o |anomalía| en el globo) → nivel según los cortes del disco. */
+export function tensionFor(signal: number, cal: Calibration, scan = false): TensionLevel {
+  return levelFor(Math.abs(signal), scan ? cal.scanTensionCuts : cal.tensionCuts) as TensionLevel;
 }
 
 const SUBDIVISIONS: readonly Subdivision[] = ["4n", "8n", "8t", "16n"];
