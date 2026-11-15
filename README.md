@@ -1,12 +1,9 @@
 # Socotlalli
 
 > Earth's data, for everyone who listens.
-
-[**Live demo**](https://socotlalli-nasa-space-apps-2026.vercel.app) · [Demo video / slides](#) · [Source code](#)
-
 Socoteam · NASA Space Apps Challenge 2026, Ensenada, Baja California, Mexico · Challenge: The Earth Information Jukebox
 
-![Screenshot of the interface](docs/screenshot.png)
+<img width="1570" height="855" alt="Interfaz" src="https://github.com/user-attachments/assets/8e12bef2-bdc8-4c32-b3ae-6f14e3d179d1" />
 
 ## Summary
 
@@ -173,18 +170,13 @@ Disc ids: `sst`, `co2`, `aerosols`, `forest`.
 
 ### Fonts, recordings and images
 
-| Item | Author | License | Link |
-|---|---|---|---|
-| Urbanist (via Fontsource) | Corey Hu | SIL OFL 1.1 | https://fontsource.org/fonts/urbanist |
-| Wind and water recordings (`public/samples/calm`) | [complete] | [complete] | [complete] |
-| Dust and lightning recordings (`public/samples/stress`) | [complete] | [complete] | [complete] |
-| Felt artwork and Tlalli (`src/assets`) | [complete] | [complete] | [complete] |
+| Item | Author |Link |
+|---|---|---|
+| Wind and water recordings (`public/samples/calm`) |Jared Delgado & Bryan Jeronimo| https://drive.google.com/drive/folders/1SVq7l1JCypAUfIDjOuHR3mNrvUfltJQr?usp=drive_link |
+| Dust and lightning recordings (`public/samples/stress`) | Jared Delgado & Bryan Jeronimo | https://drive.google.com/drive/folders/1MhDm0rG35WYnDY_0CcXZww5w3Lj0gDsa?usp=sharing |
 
 ## Use of AI
-
-- [Tool, for example Claude (Anthropic)]: [what it was used for, for example prototyping the cabin interface and the Tlalli artwork], in [files, for example the `Claude outputs/` folder and `src/assets/tlalli.svg`].
-- [Complete: any other tool, task and files, including code, audio or images generated with AI.]
-
+- ...
 ## Team
 
 Socoteam, Ensenada, Baja California, Mexico.
