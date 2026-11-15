@@ -1,6 +1,8 @@
 /**
  * Motor de audio: une modos, mapeo, armonía, instrumentos y efectos
  * sobre el reloj de Tone.js (Transport).
+ *
+ * Recibe el disc.json tal como lo escribe pipeline/build_disc.py (Contrato 1).
  */
 import * as Tone from "tone";
 import { calibrate, DEFAULT_CALIBRATION, normalizedFrameChange, type Calibration } from "./calibration";
@@ -16,12 +18,16 @@ import type {
   AudioEngineApi,
   Disc,
   FrameCallback,
+  InstrumentPreset,
   ListeningMode,
   Mode,
   NoteCallback,
   NoteEvent,
   Subdivision,
 } from "./types";
+
+/** Tempo de los discos donde "cambio entre fotogramas" no aplica (globo, una sola imagen): 90 BPM. */
+const NEUTRAL_CHANGE = 0.5;
 
 export class AudioEngine implements AudioEngineApi {
   private disc: Disc | null = null;
@@ -34,6 +40,7 @@ export class AudioEngine implements AudioEngineApi {
   private instrument: Instrument | null = null;
   private eventId: number | null = null;
   private lastFrame = -1;
+  private playing = false;
   private noteListeners = new Set<NoteCallback>();
   private frameListeners = new Set<FrameCallback>();
 
@@ -43,18 +50,13 @@ export class AudioEngine implements AudioEngineApi {
 
   loadDisc(disc: Disc): void {
     this.pause();
+    checkDisc(disc);
     this.disc = disc;
     this.scan = new ScanMode(disc);
     this.region = new RegionMode(disc);
     this.calibration = calibrate(disc);
     this.lastFrame = -1;
-
-    this.ensureEffects();
-    this.effects!.distortion.wet.value = 0; // evita que la distorsión de CO₂ se quede en otros discos
-    this.instrument?.dispose();
-    const preset = presetFor(disc.id);
-    this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
-    this.instrument = new Instrument(preset, this.effects!.input);
+    this.setInstrument(presetFor(disc.id));
   }
 
   async play(): Promise<void> {
@@ -63,8 +65,9 @@ export class AudioEngine implements AudioEngineApi {
     await Tone.start();
     await Tone.loaded(); // sin esto, las primeras notas con samples no suenan
     const transport = Tone.getTransport();
-    if (this.eventId === null) this.scheduleNext(transport.seconds);
+    if (this.eventId === null) this.scheduleNext(transport.seconds + 0.05);
     transport.start();
+    this.playing = true;
   }
 
   pause(): void {
@@ -75,11 +78,14 @@ export class AudioEngine implements AudioEngineApi {
       this.eventId = null;
     }
     this.instrument?.releaseAll();
+    this.playing = false;
   }
 
+  /** Cambia de modo sin perder el fotograma en que va la música. */
   setMode(mode: Mode): void {
+    const frame = Math.max(0, this.lastFrame);
     this.mode = mode;
-    this.activeMode()?.reset();
+    this.activeMode()?.seek(frame);
     this.lastFrame = -1;
   }
 
@@ -96,6 +102,32 @@ export class AudioEngine implements AudioEngineApi {
   // Extras (no forman parte del contrato mínimo)
   // -------------------------------------------------------------------------
 
+  /**
+   * Desbloquea el audio. Llamarlo dentro del clic del usuario cuando play()
+   * se va a llamar después (p. ej. al terminar una animación).
+   */
+  async start(): Promise<void> {
+    try {
+      await Tone.start();
+    } catch {
+      // Si el navegador rechaza el audio, la interfaz sigue funcionando sin sonido.
+    }
+  }
+
+  /** Salta al inicio de un fotograma (línea de tiempo del frontend). */
+  setFrame(frameIndex: number): void {
+    this.activeMode()?.seek(frameIndex);
+    this.lastFrame = -1;
+  }
+
+  getMode(): Mode {
+    return this.mode;
+  }
+
+  isPlaying(): boolean {
+    return this.playing;
+  }
+
   /** Avisa cuando cambia el fotograma, para el texto en vivo. */
   onFrame(callback: FrameCallback): () => void {
     this.frameListeners.add(callback);
@@ -107,12 +139,14 @@ export class AudioEngine implements AudioEngineApi {
     return this.calibration;
   }
 
-  /** Toca un ejemplo de la leyenda sonora por id. */
+  /** Toca un ejemplo de la leyenda sonora por id. Sin disco cargado usa el timbre por defecto. */
   async playLegend(id: string): Promise<void> {
     const item = LEGEND.find((l) => l.id === id);
-    if (!item || !this.instrument || !this.effects) return;
-    await Tone.start();
-    const ctx: LegendContext = { instrument: this.instrument, effects: this.effects, harmony: this.harmony };
+    if (!item) return;
+    await this.start();
+    if (!this.instrument || !this.effects) this.setInstrument(presetFor("default"));
+    const ctx: LegendContext = { instrument: this.instrument!, effects: this.effects!, harmony: this.harmony };
+    this.effects!.setDistortion(0);
     item.play(ctx, Tone.now() + 0.05);
   }
 
@@ -130,8 +164,11 @@ export class AudioEngine implements AudioEngineApi {
   // Internos
   // -------------------------------------------------------------------------
 
-  private ensureEffects(): void {
+  private setInstrument(preset: InstrumentPreset): void {
     if (!this.effects) this.effects = new EffectsChain();
+    this.instrument?.dispose();
+    this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
+    this.instrument = new Instrument(preset, this.effects.input);
   }
 
   private activeMode(): ListeningMode | null {
@@ -151,32 +188,25 @@ export class AudioEngine implements AudioEngineApi {
   }
 
   /** Toca una celda y devuelve cuánto dura el paso. */
-  /** Toca una celda y devuelve cuánto dura el paso. */
   private step(time: number): Subdivision {
     const mode = this.activeMode();
     if (!this.disc || !mode || !this.instrument || !this.effects) return "4n";
 
     const sample = mode.next();
-    this.handleFrameChange(sample?.frameIndex ?? mode.frameIndex);
+    this.handleFrameChange(sample?.frameIndex ?? mode.frameIndex, time);
     if (!sample) return "8n"; // celda sin dato: silencio breve
 
     const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
       useLatLon: this.mode === "scan",
     });
-    const notes = this.harmony.chord(params.midi, params.tension).map(midiToNote);
+    const chord = this.harmony.chord(params.midi, params.tension);
 
+    // Nivel 3: distorsión solo en tensión máxima y solo en los timbres que la piden.
+    const maxDist = this.instrument.preset.maxDistortion ?? 0;
+    this.effects.setDistortion(params.tension === 3 ? maxDist * Math.abs(sample.anomaly) : 0, time);
     this.effects.setBrightness(params.brightness, time);
     this.effects.setPan(params.pan, time);
-
-    // Distorsión proporcional a la anomalía (solo presets con maxDistortion, p. ej. CO₂).
-    const maxDist = this.instrument.preset.maxDistortion ?? 0;
-    if (maxDist > 0) {
-      const amount = Math.min(1, Math.abs(sample.anomaly)) * maxDist;
-      this.effects.distortion.distortion = amount;
-      this.effects.distortion.wet.setValueAtTime(amount > 0.05 ? 1 : 0, time);
-    }
-
-    this.instrument.play(notes, params.subdivision, time, params.velocity);
+    this.instrument.play(chord, params.subdivision, time, params.velocity, sample.layer);
 
     const event: NoteEvent = {
       note: midiToNote(params.midi),
@@ -189,6 +219,8 @@ export class AudioEngine implements AudioEngineApi {
       tension: params.tension,
       time,
       duration: params.subdivision,
+      pan: params.pan,
+      layer: sample.layer,
     };
     // Sincroniza el aviso visual con el momento en que suena.
     Tone.getDraw().schedule(() => this.noteListeners.forEach((cb) => cb(event)), time);
@@ -196,13 +228,31 @@ export class AudioEngine implements AudioEngineApi {
     return params.subdivision;
   }
 
-  private handleFrameChange(frameIndex: number): void {
-    if (!this.disc || frameIndex === this.lastFrame) return;
-    const prev = this.lastFrame >= 0 ? this.disc.frames[this.lastFrame] : undefined;
-    const frame = this.disc.frames[frameIndex];
-    const change = normalizedFrameChange(rawFrameChange(prev, frame, this.disc.mask), this.calibration);
+  private handleFrameChange(frameIndex: number, time: number): void {
+    const disc = this.disc;
+    if (!disc || frameIndex === this.lastFrame) return;
+    const frame = disc.frames[frameIndex];
+    let change = NEUTRAL_CHANGE;
+    // En el globo cada fotograma es otro lugar, no otra fecha: comparar no tiene sentido.
+    if (disc.view_mode !== "globe" && disc.frames.length > 1) {
+      // Al empezar o tras un salto no hay fotograma anterior: se usa el previo del disco.
+      const n = disc.frames.length;
+      const prevIndex = this.lastFrame >= 0 ? this.lastFrame : (frameIndex - 1 + n) % n;
+      change = normalizedFrameChange(rawFrameChange(disc.frames[prevIndex], frame, disc.mask), this.calibration);
+    }
     Tone.getTransport().bpm.rampTo(changeToTempo(change), 0.5);
     this.lastFrame = frameIndex;
-    Tone.getDraw().schedule(() => this.frameListeners.forEach((cb) => cb(frameIndex, frame)), Tone.now());
+    Tone.getDraw().schedule(() => this.frameListeners.forEach((cb) => cb(frameIndex, frame)), time);
   }
+}
+
+/** Revisión mínima del contrato 1 (la completa es pipeline/validate.py). */
+function checkDisc(disc: Disc): void {
+  const cells = disc.grid.cols * disc.grid.rows;
+  if (!disc.frames.length) throw new Error(`El disco "${disc.id}" no tiene fotogramas.`);
+  disc.frames.forEach((f, i) => {
+    if (f.values.length !== cells || f.anomaly.length !== cells) {
+      throw new Error(`El disco "${disc.id}", fotograma ${i}: values y anomaly deben tener ${cells} números.`);
+    }
+  });
 }

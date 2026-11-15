@@ -41,6 +41,12 @@ export class ScanMode implements ListeningMode {
     this.frame = 0;
   }
 
+  seek(frameIndex: number): void {
+    const n = this.disc.frames.length;
+    this.col = 0;
+    this.frame = ((frameIndex % n) + n) % n;
+  }
+
   /** Celda con dato y mayor |anomalía| de la columna; null si toda la columna está vacía. */
   private pickCell(col: number): CellSample | null {
     let best: CellSample | null = null;

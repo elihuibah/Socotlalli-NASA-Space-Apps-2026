@@ -18,14 +18,17 @@ export function changeToTempo(change: number): number {
 
 /**
  * Cambio medio absoluto de `values` entre dos fotogramas, sin escalar.
- * Si `mask` existe, solo cuenta celdas con dato.
+ * Solo cuenta celdas con dato en los dos (cada fotograma puede traer su máscara).
  */
 export function rawFrameChange(prev: Frame | undefined, next: Frame, mask?: number[]): number {
   if (!prev) return 0;
+  const prevMask = prev.mask ?? mask;
+  const nextMask = next.mask ?? mask;
   let sum = 0;
   let count = 0;
   for (let i = 0; i < next.values.length; i++) {
-    if (mask && !mask[i]) continue;
+    if (prevMask && !prevMask[i]) continue;
+    if (nextMask && !nextMask[i]) continue;
     sum += Math.abs(next.values[i] - prev.values[i]);
     count++;
   }
