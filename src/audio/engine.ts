@@ -63,6 +63,7 @@ export class AudioEngine implements AudioEngineApi {
     if (!this.disc) return;
     // El navegador bloquea el audio hasta un gesto del usuario.
     await Tone.start();
+    await Tone.loaded(); // sin esto, las primeras notas con samples no suenan
     const transport = Tone.getTransport();
     if (this.eventId === null) this.scheduleNext(transport.seconds + 0.05);
     transport.start();

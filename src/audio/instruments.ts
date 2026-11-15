@@ -2,11 +2,27 @@
  * Instrumentos: un timbre por disco.
  *
  * Nivel 1–2: sintetizadores (Tone.PolySynth).
- * Nivel 3: guitarras grabadas (Tone.Sampler con archivos en public/samples).
+ * Nivel 3: grabaciones del equipo (Tone.Sampler con archivos en public/samples).
  * El cambio es transparente: los dos se tocan con triggerAttackRelease.
  */
 import * as Tone from "tone";
 import type { InstrumentPreset } from "./types";
+
+// Funciona igual en local y en Vercel.
+const SAMPLES = `${import.meta.env.BASE_URL}samples/`;
+
+/** ["A#2"] -> { "A#2": "As2.mp3" }  ("#" rompe las URL, el archivo usa "s"). */
+function noteFiles(notes: string[]): Record<string, string> {
+  return Object.fromEntries(notes.map((n) => [n, `${n.replace("#", "s")}.mp3`]));
+}
+
+// Una cada tercera menor, de mi grave hacia arriba. Igual en los dos sets.
+const SAMPLE_NOTES = [
+  "E2", "G2", "A#2", "C#3",
+  "E3", "G3", "A#3", "C#4",
+  "E4", "G4", "A#4", "C#5",
+  "E5", "G5", "A#5", "C#6",
+];
 
 // Las claves coinciden con el "id" de cada disc.json de public/discs (los escribe pipeline/)
 // y con el instrumento que la interfaz anuncia en src/data/discs.ts.
@@ -45,6 +61,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     oscillator: "fattriangle",
     envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 0.7 },
     baseOctave: 3,
+    samples: { baseUrl: `${SAMPLES}calm/`, urls: noteFiles(SAMPLE_NOTES) },
   },
   // "Respiración": órgano. Notas sostenidas y registro grave; a tensión máxima se ensucia.
   co2: {
@@ -54,9 +71,8 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     baseOctave: 3,
     volume: -12,
     maxDistortion: 0.35,
+    samples: { baseUrl: `${SAMPLES}stress/`, urls: noteFiles(SAMPLE_NOTES) }
   },
-  // TODO(audio, nivel 3): con las guitarras grabadas en public/samples, agregar a forest:
-  // samples: { baseUrl: "samples/classical/", urls: { E2: "E2.mp3", G2: "G2.mp3", ... } }
 };
 
 export function presetFor(discId: string): InstrumentPreset {
