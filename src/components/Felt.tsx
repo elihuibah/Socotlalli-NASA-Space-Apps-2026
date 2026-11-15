@@ -1,6 +1,7 @@
 // Piezas de fieltro ya "horneadas": imágenes con la textura, el borde afelpado y el
 // volumen incluidos. Al ser imágenes, moverlas o girarlas no le cuesta nada al navegador.
 // La fuente vectorial de cada una está en components/Art.tsx y assets/tlalli.svg.
+import { useEffect, useRef, useState } from 'react'
 import type { DiscId } from '../data/discs'
 import discoCo2 from '../assets/fieltro/disco-co2.webp'
 import discoIce from '../assets/fieltro/disco-ice.webp'
@@ -12,6 +13,7 @@ import fundaSst from '../assets/fieltro/funda-sst.webp'
 import fundaVeg from '../assets/fieltro/funda-veg.webp'
 import tlalliCuerpo from '../assets/fieltro/tlalli-cuerpo.webp'
 import tlalliOjos from '../assets/fieltro/tlalli-ojos.webp'
+import tlalliRisa from '../assets/fieltro/tlalli-risa.webp'
 import ttBrazo from '../assets/fieltro/tt-brazo.webp'
 import ttCaja from '../assets/fieltro/tt-caja.webp'
 import ventana from '../assets/fieltro/ventana.webp'
@@ -33,15 +35,104 @@ export const TurntableArmImg = ({ down }: { down: boolean }) => (
   <img {...img} className={`tt-brazo${down ? ' is-down' : ''}`} src={ttBrazo} />
 )
 
-/** Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear. Al caminar le salen pies. */
-export function TlalliImg({ listening, walking = null }: { listening: boolean; walking?: 'derecha' | 'izquierda' | null }) {
-  const cls = ['tlalli-fig', listening && !walking && 'is-listening', walking && `is-walking is-${walking}`].filter(Boolean).join(' ')
+type Walk = 'derecha' | 'izquierda' | null
+
+/**
+ * Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear y mirar.
+ * - Sus ojos siguen al cursor por momentos y vuelven al centro si el cursor se queda quieto.
+ * - Un clic la hace rebotar; tres clics seguidos la hacen reír.
+ * - Al caminar le salen pies; al llegar (`landing`) los guarda con una animación.
+ */
+export function TlalliImg(props: {
+  listening: boolean
+  walking?: Walk
+  landing?: boolean
+  still?: boolean // reducir movimiento: sin mirada ni risa animada
+  onLaugh?: () => void
+}) {
+  const { listening, walking = null, landing = false, still = false, onLaugh } = props
+  const fig = useRef<HTMLButtonElement | null>(null)
+  const clicks = useRef<number[]>([])
+  const timer = useRef<number | undefined>(undefined)
+  const [mood, setMood] = useState<'normal' | 'toque' | 'risa'>('normal')
+
+  // La mirada: se mueve con variables CSS, sin volver a dibujar el componente.
+  useEffect(() => {
+    const el = fig.current
+    if (!el || still) return
+    let frame = 0
+    let rest = 0
+    const look = (x: number, y: number) => {
+      el.style.setProperty('--mira-x', x.toFixed(3))
+      el.style.setProperty('--mira-y', y.toFixed(3))
+    }
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        const dx = e.clientX - (r.left + r.width / 2)
+        const dy = e.clientY - (r.top + r.height * 0.54)
+        const dist = Math.hypot(dx, dy) || 1
+        const reach = Math.min(1, dist / (r.width * 0.9)) // cerca mira poco; lejos, hasta el tope
+        look((dx / dist) * reach, (dy / dist) * reach)
+      })
+      window.clearTimeout(rest)
+      rest = window.setTimeout(() => look(0, 0), 2600)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      cancelAnimationFrame(frame)
+      window.clearTimeout(rest)
+      look(0, 0)
+    }
+  }, [still])
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const onClick = () => {
+    const now = performance.now()
+    clicks.current = [...clicks.current.filter((t) => now - t < 1400), now]
+    window.clearTimeout(timer.current)
+    if (clicks.current.length >= 3) {
+      clicks.current = []
+      setMood('risa')
+      onLaugh?.()
+      timer.current = window.setTimeout(() => setMood('normal'), 1700)
+    } else {
+      setMood('toque')
+      timer.current = window.setTimeout(() => setMood('normal'), 420)
+    }
+  }
+
+  const cls = [
+    'tlalli-fig',
+    listening && !walking && 'is-listening',
+    walking && `is-walking is-${walking}`,
+    landing && 'is-landing',
+    mood !== 'normal' && `is-${mood}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className={cls} role="img" aria-label={walking ? 'Tlalli, la Tierra con ojos grandes, va caminando' : 'Tlalli, la Tierra con ojos grandes'}>
+    <button
+      type="button"
+      ref={fig}
+      className={cls}
+      onClick={onClick}
+      aria-label={walking ? 'Tlalli va caminando' : 'Tlalli, la Tierra con ojos grandes. Tócala tres veces para hacerla reír'}
+    >
       <span className="tlalli-pie is-izq" aria-hidden="true" />
       <span className="tlalli-pie is-der" aria-hidden="true" />
-      <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
-      <img {...img} className="tlalli-ojos" src={tlalliOjos} />
-    </div>
+      <span className="tlalli-capa">
+        <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
+        <span className="tlalli-mirada">
+          <img {...img} className="tlalli-ojos" src={tlalliOjos} />
+          <img {...img} className="tlalli-risa" src={tlalliRisa} />
+        </span>
+      </span>
+    </button>
   )
 }

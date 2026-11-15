@@ -3,7 +3,11 @@ export interface Message {
   text: string
 }
 
-/** Globos de texto: el más reciente entra con animación; el anterior queda atenuado arriba. */
+/**
+ * Globos de texto: el más reciente entra con animación y apunta a Tlalli con su pico;
+ * el anterior queda atenuado arriba. Los botones de la introducción van dentro del globo,
+ * para que nada se interponga entre el globo y Tlalli.
+ */
 export function Bubbles(props: {
   messages: Message[]
   canAdvance: boolean
@@ -22,24 +26,27 @@ export function Bubbles(props: {
           {older.text}
         </p>
       )}
-      <div aria-live="polite">
-        <p key={newest.id} className="globo fieltro cosido is-new">
-          <span className="globo-nombre">Tlalli</span>
-          {newest.text}
-        </p>
-      </div>
-      {canAdvance && (
-        <div className="globo-acciones">
-          <button type="button" className="btn-fieltro fieltro cosido" onClick={onNext}>
-            {isLast ? 'Entendido' : 'Siguiente'}
-          </button>
-          {!isLast && (
-            <button type="button" className="btn-texto" onClick={onSkip}>
-              Saltar
-            </button>
+      <div className="globo-vivo" aria-live="polite">
+        <div key={newest.id} className="globo fieltro cosido is-new">
+          <p>
+            <span className="globo-nombre">Tlalli</span>
+            {newest.text}
+          </p>
+          {canAdvance && (
+            <div className="globo-acciones">
+              <button type="button" className="btn-fieltro fieltro cosido" onClick={onNext}>
+                {isLast ? 'Entendido' : 'Siguiente'}
+              </button>
+              {!isLast && (
+                <button type="button" className="btn-texto" onClick={onSkip}>
+                  Saltar
+                </button>
+              )}
+            </div>
           )}
+          <span className="globo-pico" aria-hidden="true" />
         </div>
-      )}
+      </div>
     </div>
   )
 }
