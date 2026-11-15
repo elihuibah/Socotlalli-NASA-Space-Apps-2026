@@ -65,7 +65,7 @@ export class AudioEngine implements AudioEngineApi {
     await Tone.start();
     await Tone.loaded(); // sin esto, las primeras notas con samples no suenan
     const transport = Tone.getTransport();
-    if (this.eventId === null) this.scheduleNext(transport.seconds + 0.05);
+    if (this.eventId === null) this.scheduleNext(transport.ticks + Tone.Time(0.05).toTicks());
     transport.start();
     this.playing = true;
   }
@@ -181,12 +181,14 @@ export class AudioEngine implements AudioEngineApi {
    * Programa un solo paso y, al sonar, programa el siguiente.
    * Así cada nota puede tener su propia duración (densidad rítmica).
    */
-  private scheduleNext(at: number): void {
+  private scheduleNext(atTicks: number): void {
     const transport = Tone.getTransport();
+    // En ticks, no en segundos: los segundos se convierten con el BPM del momento, y al
+    // bajar el tempo entre fotogramas el siguiente paso quedaba en el pasado (música detenida).
     this.eventId = transport.scheduleOnce((time) => {
       const duration = this.step(time);
-      this.scheduleNext(at + Tone.Time(duration).toSeconds());
-    }, at);
+      this.scheduleNext(atTicks + Tone.Time(duration).toTicks());
+    }, `${Math.round(atTicks)}i`);
   }
 
   /** Toca una celda y devuelve cuánto dura el paso. */
