@@ -2,11 +2,27 @@
  * Instrumentos: un timbre por disco.
  *
  * Nivel 1–2: sintetizadores (Tone.PolySynth).
- * Nivel 3: guitarras grabadas (Tone.Sampler con archivos en public/samples).
+ * Nivel 3: grabaciones del equipo (Tone.Sampler con archivos en public/samples).
  * El cambio es transparente: los dos se tocan con triggerAttackRelease.
  */
 import * as Tone from "tone";
 import type { InstrumentPreset } from "./types";
+
+// Funciona igual en local y en Vercel.
+const SAMPLES = `${import.meta.env.BASE_URL}samples/`;
+
+/** ["A#2"] -> { "A#2": "As2.mp3" }  ("#" rompe las URL, el archivo usa "s"). */
+function noteFiles(notes: string[]): Record<string, string> {
+  return Object.fromEntries(notes.map((n) => [n, `${n.replace("#", "s")}.mp3`]));
+}
+
+// Una cada tercera menor, de mi grave hacia arriba. Igual en los dos sets.
+const SAMPLE_NOTES = [
+  "E2", "G2", "A#2", "C#3",
+  "E3", "G3", "A#3", "C#4",
+  "E4", "G4", "A#4", "C#5",
+  "E5", "G5", "A#5", "C#6",
+];
 
 export const PRESETS: Record<string, InstrumentPreset> = {
   default: {
@@ -21,17 +37,41 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     envelope: { attack: 0.05, decay: 0.3, sustain: 0.5, release: 1.2 },
     baseOctave: 4,
   },
+
+  // "Pastoral": grabaciones tranquilas de viento y agua.
+  forest: {
+    id: "forest",
+    oscillator: "fattriangle", // solo se usa si no hay samples
+    envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 1.2 }, // release = cola al soltar
+    baseOctave: 3,
+    samples: { baseUrl: `${SAMPLES}calm/`, urls: noteFiles(SAMPLE_NOTES) },
+  },
+
+  // "Bruma": sin samples, suena el sintetizador.
+  aerosols: {
+    id: "aerosols",
+    oscillator: "amsine",
+    envelope: { attack: 0.005, decay: 0.5, sustain: 0.15, release: 2 },
+    baseOctave: 4,
+    volume: -4,
+  },
+
+  // "Respiración": grabaciones ásperas de polvo y rayos + distorsión por anomalía.
   co2: {
     id: "co2",
-    oscillator: "fmsine",
-    envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.6 },
+    oscillator: "fatsquare",
+    envelope: { attack: 0.01, decay: 0.3, sustain: 0.6, release: 0.8 },
     baseOctave: 3,
+    volume: -6,
+    maxDistortion: 0.5,
+    samples: { baseUrl: `${SAMPLES}stress/`, urls: noteFiles(SAMPLE_NOTES) },
   },
+
   // Tercer disco: el plan propone hielo marino o vegetación. La clave debe
   // coincidir con el "id" del disc.json que entregue Datos.
   ice: {
     id: "ice",
-    // Campanas frías, ataque rápido y cola larga (evoca armónicos de guitarra).
+    // Campanas frías, ataque rápido y cola larga.
     oscillator: "amsine",
     envelope: { attack: 0.005, decay: 0.4, sustain: 0.2, release: 1.6 },
     baseOctave: 5,
@@ -43,8 +83,6 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     envelope: { attack: 0.08, decay: 0.3, sustain: 0.5, release: 0.9 },
     baseOctave: 3,
   },
-  // TODO(audio, nivel 3): preset "guitar" con samples:
-  // samples: { baseUrl: "samples/classical/", urls: { E2: "E2.mp3", G2: "G2.mp3", ... } }
 };
 
 export function presetFor(discId: string): InstrumentPreset {
@@ -60,6 +98,7 @@ export class Instrument {
   constructor(preset: InstrumentPreset, destination: Tone.InputNode) {
     this.preset = preset;
     this.voice = preset.samples ? createSampler(preset) : createSynth(preset);
+    if (preset.volume !== undefined) this.voice.volume.value = preset.volume;
     this.voice.connect(destination);
   }
 

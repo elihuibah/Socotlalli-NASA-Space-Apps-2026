@@ -140,10 +140,31 @@ export interface ListeningMode {
 /** Preset de timbre por disco (un timbre por disco, nivel 2). */
 export interface InstrumentPreset {
   id: string;
-  oscillator: "sine" | "triangle" | "sawtooth" | "square" | "fatsawtooth" | "fmsine" | "amsine";
+  oscillator:
+    | "sine" | "triangle" | "sawtooth" | "square"
+    | "fatsawtooth" | "fattriangle" | "fatsquare"
+    | "fmsine" | "amsine";  
   envelope: { attack: number; decay: number; sustain: number; release: number };
   /** Muestras de public/samples para Tone.Sampler (nivel 3). */
   samples?: { baseUrl: string; urls: Record<string, string> };
   /** Octava base del registro. */
   baseOctave: number;
+}
+
+/** Preset de timbre por disco (un timbre por disco, nivel 2). */
+export interface InstrumentPreset {
+  id: string;
+  oscillator:
+    | "sine" | "triangle" | "sawtooth" | "square"
+    | "fatsawtooth" | "fattriangle" | "fatsquare"
+    | "fmsine" | "amsine";
+  envelope: { attack: number; decay: number; sustain: number; release: number };
+  /** Muestras de public/samples para Tone.Sampler (nivel 3). */
+  samples?: { baseUrl: string; urls: Record<string, string> };
+  /** Octava base del registro. */
+  baseOctave: number;
+  /** Volumen del instrumento en dB (opcional). */
+  volume?: number;
+  /** Distorsión máxima 0..1 con anomalía fuerte (opcional). */
+  maxDistortion?: number;
 }

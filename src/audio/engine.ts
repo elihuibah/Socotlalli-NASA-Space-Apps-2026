@@ -50,6 +50,7 @@ export class AudioEngine implements AudioEngineApi {
     this.lastFrame = -1;
 
     this.ensureEffects();
+    this.effects!.distortion.wet.value = 0; // evita que la distorsión de CO₂ se quede en otros discos
     this.instrument?.dispose();
     const preset = presetFor(disc.id);
     this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
@@ -60,6 +61,7 @@ export class AudioEngine implements AudioEngineApi {
     if (!this.disc) return;
     // El navegador bloquea el audio hasta un gesto del usuario.
     await Tone.start();
+    await Tone.loaded(); // sin esto, las primeras notas con samples no suenan
     const transport = Tone.getTransport();
     if (this.eventId === null) this.scheduleNext(transport.seconds);
     transport.start();
@@ -149,6 +151,7 @@ export class AudioEngine implements AudioEngineApi {
   }
 
   /** Toca una celda y devuelve cuánto dura el paso. */
+  /** Toca una celda y devuelve cuánto dura el paso. */
   private step(time: number): Subdivision {
     const mode = this.activeMode();
     if (!this.disc || !mode || !this.instrument || !this.effects) return "4n";
@@ -164,6 +167,15 @@ export class AudioEngine implements AudioEngineApi {
 
     this.effects.setBrightness(params.brightness, time);
     this.effects.setPan(params.pan, time);
+
+    // Distorsión proporcional a la anomalía (solo presets con maxDistortion, p. ej. CO₂).
+    const maxDist = this.instrument.preset.maxDistortion ?? 0;
+    if (maxDist > 0) {
+      const amount = Math.min(1, Math.abs(sample.anomaly)) * maxDist;
+      this.effects.distortion.distortion = amount;
+      this.effects.distortion.wet.setValueAtTime(amount > 0.05 ? 1 : 0, time);
+    }
+
     this.instrument.play(notes, params.subdivision, time, params.velocity);
 
     const event: NoteEvent = {
