@@ -1,6 +1,10 @@
+import { useLang, useT } from '../i18n'
+import type { Text } from '../i18n'
+
 export interface Message {
   id: number
-  text: string
+  /** Se escribe en el idioma actual: al cambiar de idioma, el globo también cambia. */
+  text: Text
 }
 
 /**
@@ -16,6 +20,8 @@ export function Bubbles(props: {
   onSkip: () => void
 }) {
   const { messages, canAdvance, isLast, onNext, onSkip } = props
+  const lang = useLang()
+  const t = useT()
   const newest = messages[messages.length - 1]
   const older = messages.length > 1 ? messages[messages.length - 2] : null
 
@@ -23,23 +29,23 @@ export function Bubbles(props: {
     <div className="globos">
       {older && (
         <p key={older.id} className="globo fieltro cosido is-old" aria-hidden="true">
-          {older.text}
+          {older.text(lang)}
         </p>
       )}
       <div className="globo-vivo" aria-live="polite">
         <div key={newest.id} className="globo fieltro cosido is-new">
           <p>
             <span className="globo-nombre">Tlalli</span>
-            {newest.text}
+            {newest.text(lang)}
           </p>
           {canAdvance && (
             <div className="globo-acciones">
               <button type="button" className="btn-fieltro fieltro cosido" onClick={onNext}>
-                {isLast ? 'Entendido' : 'Siguiente'}
+                {isLast ? t('Entendido', 'Got it') : t('Siguiente', 'Next')}
               </button>
               {!isLast && (
                 <button type="button" className="btn-texto" onClick={onSkip}>
-                  Saltar
+                  {t('Saltar', 'Skip')}
                 </button>
               )}
             </div>

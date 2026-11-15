@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import * as audio from './audio'
-import { DISCS } from './data/discs'
+import { DISCS, localizeDisc } from './data/discs'
 import type { Disc, DiscId } from './data/discs'
 import { COLS, audioFrames, loadDiscData } from './data/realData'
 import type { DataMap } from './data/realData'
@@ -13,21 +13,35 @@ import { DiscInfo, Shelf } from './components/Shelf'
 import { Bubbles } from './components/Tlalli'
 import { Pizarron } from './components/Pizarron'
 import type { Message } from './components/Tlalli'
+import { LangContext, pick } from './i18n'
+import type { Lang, Text } from './i18n'
 
 // ---- Lo que dice Tlalli ----------------------------------------------------
-const INTRO = [
-  'Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.',
-  'Los satélites de la NASA me observan. Con lo que ven, hice música.',
-  'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
-  'Luego arrástralo al tocadiscos, o pulsa el botón de reproducir.',
-  'Cuando un disco esté sonando, pulsa «Conocer más» y te llevo al pizarrón a ver sus números.',
+/** Un texto en español y en inglés; el globo lo escribe en el idioma que esté puesto. */
+const tx = (es: string, en: string): Text => (l) => pick(l, es, en)
+
+const INTRO: Text[] = [
+  tx('Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.', 'Hi, I’m Tlalli, “earth” in Nahuatl. Welcome to my cabin in orbit.'),
+  tx('Los satélites de la NASA me observan. Con lo que ven, hice música.', 'NASA satellites watch over me. With what they see, I made music.'),
+  tx(
+    'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
+    'Each record holds a part of me: my sea, my forests, my air and what floats in it. Click one.',
+  ),
+  tx('Luego arrástralo al tocadiscos, o pulsa el botón de reproducir.', 'Then drag it to the turntable, or press the play button.'),
+  tx(
+    'Cuando un disco esté sonando, pulsa «Conocer más» y te llevo al pizarrón a ver sus números.',
+    'When a record is playing, press “Learn more” and I’ll take you to the blackboard to see its numbers.',
+  ),
 ]
-const HOW_TO = [
-  'La altura: notas agudas, valores altos; notas graves, valores bajos.',
-  'La tensión: si suena incómodo, me alejé de lo normal.',
-  'El lugar: con audífonos, el sonido viaja de oeste a este.',
-  'El ritmo: una zona pareja suena con notas largas; una muy variada, con notas rápidas.',
-  'El tempo: si el mapa cambia mucho entre fechas, la música se acelera.',
+const HOW_TO: Text[] = [
+  tx('La altura: notas agudas, valores altos; notas graves, valores bajos.', 'Pitch: high notes, high values; low notes, low values.'),
+  tx('La tensión: si suena incómodo, me alejé de lo normal.', 'Tension: if it sounds uneasy, I drifted away from normal.'),
+  tx('El lugar: con audífonos, el sonido viaja de oeste a este.', 'Place: with headphones, the sound travels from west to east.'),
+  tx(
+    'El ritmo: una zona pareja suena con notas largas; una muy variada, con notas rápidas.',
+    'Rhythm: an even area plays long notes; a very varied one, quick notes.',
+  ),
+  tx('El tempo: si el mapa cambia mucho entre fechas, la música se acelera.', 'Tempo: if the map changes a lot between dates, the music speeds up.'),
 ]
 // Ejemplo de la leyenda sonora (src/audio/legend.ts) que acompaña cada línea de HOW_TO.
 const HOW_TO_SOUND = ['pitch', 'tension', 'pan', 'density', 'tempo']
@@ -39,12 +53,16 @@ type View = 'sala' | 'pizarron'
 type Walk = 'derecha' | 'izquierda' | null
 
 const DISC_IDS = DISCS.map((d) => d.id)
+/** Los textos de un vinilo en el idioma pedido (para lo que dice Tlalli). */
+const discText = (id: DiscId, l: Lang) => localizeDisc(DISCS.find((d) => d.id === id)!, l)
 const WALK_MS = 1400 // lo que dura el paseo de Tlalli (igual que la transición en pizarron.css)
 
 const VIGA = 'M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900'
 
 export default function App() {
   const [settings, setSetting] = useSettings()
+  const lang = settings.lang
+  const t = (es: string, en: string) => pick(lang, es, en)
   const [messages, setMessages] = useState<Message[]>([{ id: 0, text: INTRO[0] }])
   const [guide, setGuide] = useState<Guide>({ kind: 'intro', index: 0 })
   const [selectedId, setSelectedId] = useState<DiscId | null>(null)
@@ -89,11 +107,12 @@ export default function App() {
   // Cada vinilo suena con los números de su disc.json en cuanto llegan.
   const discs = useMemo(
     () =>
-      DISCS.map((d) => {
+      DISCS.map((base) => {
+        const d = localizeDisc(base, lang)
         const real = data[d.id]
         return real ? { ...d, frames: audioFrames(real), real: true } : d
       }),
-    [data],
+    [data, lang],
   )
   const discById = useCallback((id: DiscId | null) => discs.find((d) => d.id === id) ?? null, [discs])
 
@@ -101,7 +120,7 @@ export default function App() {
   const current = discById(currentId)
   const shownFrame = current ? frame % current.frames.length : 0
 
-  const say = useCallback((text: string) => {
+  const say = useCallback((text: Text) => {
     const id = nextId.current++
     setMessages((prev) => [...prev.slice(-1), { id, text }])
   }, [])
@@ -113,7 +132,11 @@ export default function App() {
     const i = guide.index + 1
     if (i >= lines.length) {
       setGuide(null)
-      say(guide.kind === 'intro' ? 'Elige un vinilo del buró cuando quieras.' : 'Eso es todo. Pon un disco y compruébalo.')
+      say(
+        guide.kind === 'intro'
+          ? tx('Elige un vinilo del buró cuando quieras.', 'Pick a record from the cabinet whenever you like.')
+          : tx('Eso es todo. Pon un disco y compruébalo.', 'That’s all. Put on a record and hear for yourself.'),
+      )
       return
     }
     setGuide({ ...guide, index: i })
@@ -122,7 +145,7 @@ export default function App() {
   }
   const skipGuide = () => {
     setGuide(null)
-    say('Está bien. Elige un vinilo del buró cuando quieras.')
+    say(tx('Está bien. Elige un vinilo del buró cuando quieras.', 'All right. Pick a record from the cabinet whenever you like.'))
   }
   const startHowTo = () => {
     setGuide({ kind: 'howto', index: 0 })
@@ -160,11 +183,17 @@ export default function App() {
   // El pizarrón siempre muestra el disco que está en el tocadiscos.
   const learnMore = (d: Disc) => {
     walk('pizarron', 'derecha', '.piz-volver')
-    say(`Vamos al pizarrón. Toca cualquier lugar del mapa y te cuento cómo está ${d.about}.`)
+    say((l) =>
+      pick(
+        l,
+        `Vamos al pizarrón. Toca cualquier lugar del mapa y te cuento cómo está ${discText(d.id, l).about}.`,
+        `Let’s go to the blackboard. Tap any place on the map and I’ll tell you about ${discText(d.id, l).about}.`,
+      ),
+    )
   }
   const backToTurntable = () => {
     walk('sala', 'izquierda', '.ficha .btn-conocer, .funda.is-selected, .funda')
-    say('De vuelta al tocadiscos.')
+    say(tx('De vuelta al tocadiscos.', 'Back to the turntable.'))
   }
 
   // ---- Elegir, colocar y reproducir ----------------------------------------
@@ -177,7 +206,10 @@ export default function App() {
     if (!d) return
     setSelectedId(id)
     setGuide(null)
-    say(`«${d.title}» guarda ${d.about}. ¿Lo ponemos?`)
+    say((l) => {
+      const x = discText(id, l)
+      return pick(l, `«${x.title}» guarda ${x.about}. ¿Lo ponemos?`, `“${x.title}” holds ${x.about}. Shall we play it?`)
+    })
   }
 
   const finishPlace = useCallback(
@@ -188,7 +220,7 @@ export default function App() {
       setFrame(0)
       setListenCell(null)
       setPlaying(true)
-      say(d.listen)
+      say((l) => discText(d.id, l).listen)
       // El motor toca el disc.json del pipeline tal cual (Contrato 1).
       const token = ++loadToken.current
       loadDiscData(d.id).then(
@@ -201,7 +233,7 @@ export default function App() {
         () => {
           if (token !== loadToken.current) return
           setPlaying(false)
-          say('No pude leer los datos de este disco. Prueba con otro.')
+          say(tx('No pude leer los datos de este disco. Prueba con otro.', 'I couldn’t read this record’s data. Try another one.'))
         },
       )
     },
@@ -243,13 +275,13 @@ export default function App() {
 
   const toggle = () => {
     if (!current) {
-      say('El tocadiscos está vacío. Elige un vinilo.')
+      say(tx('El tocadiscos está vacío. Elige un vinilo.', 'The turntable is empty. Choose a record.'))
       return
     }
     if (playing) {
       audio.pause()
       setPlaying(false)
-      say('Pausa. Aquí te espero.')
+      say(tx('Pausa. Aquí te espero.', 'Paused. I’ll wait for you here.'))
     } else {
       void audio.play()
       setPlaying(true)
@@ -262,7 +294,7 @@ export default function App() {
     setPlaying(false)
     setCurrentId(null)
     setListenCell(null)
-    say('Listo, lo guardé en su funda. ¿Cuál sigue?')
+    say(tx('Listo, lo guardé en su funda. ¿Cuál sigue?', 'Done, I put it back in its sleeve. Which one is next?'))
   }
 
   // El motor decide cuándo cambia el fotograma (al terminar cada barrido) y avisa aquí,
@@ -279,7 +311,7 @@ export default function App() {
         const f = c?.frames[next]
         if (c && f && Math.abs(f.anomaly) > 0.7 && !tenseSaid.current.has(c.id)) {
           tenseSaid.current.add(c.id)
-          say('¿Oyes cómo se tensa la armonía? Ahí me alejé de lo normal.')
+          say(tx('¿Oyes cómo se tensa la armonía? Ahí me alejé de lo normal.', 'Hear how the harmony gets tense? That’s where I drifted away from normal.'))
         }
       }),
     [say],
@@ -291,7 +323,7 @@ export default function App() {
     setListenCell(cell)
     if (cell === null) {
       audio.setMode('scan')
-      say('De vuelta al barrido: el sonido viaja de oeste a este.')
+      say(tx('De vuelta al barrido: el sonido viaja de oeste a este.', 'Back to the sweep: the sound travels from west to east.'))
       return
     }
     audio.setRegion(cell % COLS, Math.floor(cell / COLS))
@@ -300,7 +332,7 @@ export default function App() {
       void audio.play()
       setPlaying(true)
     }
-    say('Ahora oyes solo ese lugar, fecha tras fecha.')
+    say(tx('Ahora oyes solo ese lugar, fecha tras fecha.', 'Now you hear only that place, date after date.'))
   }
 
   // ---- Arrastrar un vinilo al tocadiscos ------------------------------------
@@ -323,7 +355,7 @@ export default function App() {
       if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return
       p.active = true
       setGuide(null)
-      say('Eso, suéltalo sobre el tocadiscos.')
+      say(tx('Eso, suéltalo sobre el tocadiscos.', 'That’s it, drop it on the turntable.'))
     }
     setDrag({ id: p.id, x: e.clientX, y: e.clientY, over: isOverTurntable(e.clientX, e.clientY) })
   }
@@ -336,7 +368,7 @@ export default function App() {
     setDrag(null)
     const d = discById(p.id)
     if (d && isOverTurntable(e.clientX, e.clientY)) place(d, false)
-    else say('Casi. Suéltalo encima del tocadiscos.')
+    else say(tx('Casi. Suéltalo encima del tocadiscos.', 'Almost. Drop it right on the turntable.'))
   }
   const onDragCancel = () => {
     pointer.current = null
@@ -354,6 +386,7 @@ export default function App() {
   const dragged = discById(drag?.id ?? null)
 
   return (
+    <LangContext.Provider value={lang}>
     <div className={`cabana vista-${view}${walking ? ` is-paseando-${walking}` : ''}${drag ? ' is-dragging' : ''}`}>
       <div className="cabin" aria-hidden="true">
         <svg className="cabin-arco" viewBox="0 0 1440 900" preserveAspectRatio="none">
@@ -374,28 +407,49 @@ export default function App() {
       </div>
 
       <header className="cab-header">
-        <a className="logo" href={import.meta.env.BASE_URL} aria-label="Socotlalli, ir al inicio">
+        <a className="logo" href={import.meta.env.BASE_URL} aria-label={t('Socotlalli, ir al inicio', 'Socotlalli, go to the home page')}>
           Socotlalli
         </a>
-        <nav aria-label="Opciones" className="cab-nav">
+        <nav aria-label={t('Opciones', 'Options')} className="cab-nav">
           <button type="button" className="btn-texto" onClick={startHowTo}>
-            Cómo se escucha
+            {t('Cómo se escucha', 'How to listen')}
           </button>
           <button type="button" className="btn-texto" aria-expanded={a11yOpen} aria-controls="panel-a11y" onClick={() => setA11yOpen((o) => !o)}>
-            Accesibilidad
+            {t('Accesibilidad', 'Accessibility')}
           </button>
+          {/* Interruptor de idioma: el lado claro es el idioma activo */}
+          <div className="idioma" role="group" aria-label={t('Idioma', 'Language')}>
+            {(['en', 'es'] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                lang={l}
+                className={`idioma-opcion${lang === l ? ' is-on' : ''}`}
+                aria-pressed={lang === l}
+                aria-label={l === 'en' ? 'English' : 'Español'}
+                onClick={() => setSetting('lang', l)}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </nav>
         {/* Siempre está en la página para poder animar su entrada y salida (cabana.css) */}
         <div id="panel-a11y" className={`a11y-panel fieltro cosido${a11yOpen ? ' is-open' : ''}`} inert={!a11yOpen}>
           <label>
             <input type="checkbox" checked={settings.reduceMotion} onChange={(e) => setSetting('reduceMotion', e.target.checked)} />
-            Reducir movimiento
+            {t('Reducir movimiento', 'Reduce motion')}
           </label>
           <label>
             <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
-            Texto más grande
+            {t('Texto más grande', 'Larger text')}
           </label>
-          <p>Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.</p>
+          <p>
+            {t(
+              'Todo funciona con teclado: Tab para moverte, flechas entre los vinilos y Enter para elegir.',
+              'Everything works with the keyboard: Tab to move, arrow keys between the records and Enter to choose.',
+            )}
+          </p>
         </div>
       </header>
 
@@ -414,14 +468,14 @@ export default function App() {
               walking={walking}
               landing={landing}
               still={settings.reduceMotion}
-              onLaugh={() => say('¡Ja, ja, ja! Me haces cosquillas.')}
+              onLaugh={() => say(tx('¡Ja, ja, ja! Me haces cosquillas.', 'Ha, ha, ha! That tickles.'))}
             />
           </div>
           <div className="tapete" aria-hidden="true" />
         </section>
 
         <div className="escenario">
-        <section className="lado-mueble" aria-label="Vinilos y tocadiscos" inert={view !== 'sala'}>
+        <section className="lado-mueble" aria-label={t('Vinilos y tocadiscos', 'Records and turntable')} inert={view !== 'sala'}>
           <WindowImg />
           <DiscInfo
             disc={selected}
@@ -484,7 +538,9 @@ export default function App() {
         </div>
       </main>
 
-      <p className="cab-credito">Imágenes y datos: NASA Scientific Visualization Studio · NASA Earth Information Center</p>
+      <p className="cab-credito">
+        {t('Imágenes y datos', 'Images and data')}: NASA Scientific Visualization Studio · NASA Earth Information Center
+      </p>
 
       {drag && dragged && (
         <div className="volador" aria-hidden="true" style={{ transform: `translate(${drag.x}px, ${drag.y}px)` }}>
@@ -502,5 +558,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </LangContext.Provider>
   )
 }

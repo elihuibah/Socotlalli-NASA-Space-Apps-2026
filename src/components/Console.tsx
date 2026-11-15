@@ -2,6 +2,7 @@ import type { Disc } from '../data/discs'
 import { tensionWord } from '../data/discs'
 import { IconEject, IconPause, IconPlay } from './Art'
 import { RecordImg, TurntableArmImg, TurntableBoxImg } from './Felt'
+import { useLang, useT } from '../i18n'
 
 /**
  * Tocadiscos de fieltro visto de frente. Es el destino al arrastrar un vinilo
@@ -15,9 +16,10 @@ export function Turntable(props: {
   onClick: () => void
 }) {
   const { disc, playing, dropState, register, onClick } = props
+  const t = useT()
   const label = disc
-    ? `Tocadiscos con ${disc.title}. ${playing ? 'Pausar' : 'Reanudar'}`
-    : 'Tocadiscos vacío. Elige un vinilo'
+    ? t(`Tocadiscos con ${disc.title}. ${playing ? 'Pausar' : 'Reanudar'}`, `Turntable with ${disc.title}. ${playing ? 'Pause' : 'Resume'}`)
+    : t('Tocadiscos vacío. Elige un vinilo', 'Empty turntable. Choose a record')
   return (
     <button type="button" className={`tornamesa is-${dropState}`} ref={register} onClick={onClick} aria-label={label}>
       <TurntableBoxImg />
@@ -46,13 +48,15 @@ export function NowPlaying(props: {
   onEject: () => void
 }) {
   const { disc, playing, frame } = props
+  const lang = useLang()
+  const t = useT()
   if (!disc) {
     return (
       <div className="suena">
         <div className="suena-texto">
-          <p className="eyebrow">Tocadiscos</p>
-          <p className="suena-titulo">Vacío</p>
-          <p className="suena-detalle">Arrastra aquí un vinilo, o elige uno y pulsa reproducir.</p>
+          <p className="eyebrow">{t('Tocadiscos', 'Turntable')}</p>
+          <p className="suena-titulo">{t('Vacío', 'Empty')}</p>
+          <p className="suena-detalle">{t('Arrastra aquí un vinilo, o elige uno y pulsa reproducir.', 'Drag a record here, or choose one and press play.')}</p>
         </div>
       </div>
     )
@@ -60,10 +64,11 @@ export function NowPlaying(props: {
   return (
     <div className="suena">
       <div className="suena-texto">
-        <p className="eyebrow">{playing ? 'Ahora suena' : 'En pausa'}</p>
+        <p className="eyebrow">{playing ? t('Ahora suena', 'Now playing') : t('En pausa', 'Paused')}</p>
         <p className="suena-titulo">{disc.title}</p>
         <p className="suena-detalle">
-          Fotograma {frame + 1} de {disc.frames.length} · tensión {tensionWord(disc.frames[frame].anomaly)}
+          {t('Fotograma', 'Frame')} {frame + 1} {t('de', 'of')} {disc.frames.length} · {t('tensión', 'tension')}{' '}
+          {tensionWord(disc.frames[frame].anomaly, lang)}
         </p>
       </div>
       <div className="suena-acciones">
@@ -71,12 +76,12 @@ export function NowPlaying(props: {
           type="button"
           className="btn-redondo fieltro cosido"
           onClick={props.onToggle}
-          aria-label={playing ? 'Pausar' : 'Reanudar'}
-          title={playing ? 'Pausar' : 'Reanudar'}
+          aria-label={playing ? t('Pausar', 'Pause') : t('Reanudar', 'Resume')}
+          title={playing ? t('Pausar', 'Pause') : t('Reanudar', 'Resume')}
         >
           {playing ? <IconPause /> : <IconPlay />}
         </button>
-        <button type="button" className="btn-redondo is-chico fieltro cosido" onClick={props.onEject} aria-label="Guardar el disco en su funda" title="Guardar el disco">
+        <button type="button" className="btn-redondo is-chico fieltro cosido" onClick={props.onEject} aria-label={t('Guardar el disco en su funda', 'Put the record back in its sleeve')} title={t('Guardar el disco', 'Put the record away')}>
           <IconEject />
         </button>
       </div>

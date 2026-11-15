@@ -3,6 +3,8 @@
 // `frames` arranca con datos de EJEMPLO; App los reemplaza con los del disc.json al cargarlo
 // (ver audioFrames en realData.ts).
 
+import type { Lang } from '../i18n'
+
 export type DiscId = 'sst' | 'aerosols' | 'forest' | 'co2'
 
 /** Arte de fieltro de cada vinilo (assets/fieltro/funda-*.webp y disco-*.webp). */
@@ -31,7 +33,14 @@ export interface Disc {
   listen: string // lo que dice Tlalli cuando empieza a sonar
   frames: Frame[]
   real: boolean // true cuando frames ya viene del disc.json
+  en: DiscText // los mismos textos en inglés
 }
+
+/** Los textos de un vinilo que cambian con el idioma. */
+type DiscText = Pick<Disc, 'title' | 'variable' | 'about' | 'instrument' | 'howItSounds' | 'listen'>
+
+/** El vinilo con sus textos en el idioma pedido. */
+export const localizeDisc = (d: Disc, lang: Lang): Disc => (lang === 'en' ? { ...d, ...d.en } : d)
 
 export const FRAME_MS = 4500
 const TOTAL_FRAMES = 12
@@ -77,6 +86,15 @@ export const DISCS: Disc[] = [
     listen: 'Mis mares. Si el sonido sube, el agua se calienta.',
     frames: mockFrames(11, 1),
     real: false,
+    en: {
+      title: 'Ocean Fever',
+      variable: 'Sea surface temperature',
+      about: 'the temperature of my seas',
+      instrument: 'Wind and water, low',
+      howItSounds:
+        'When the water warms up, higher recordings play. If the sea drifts away from normal, more sounds join in and the harmony gets tense.',
+      listen: 'My seas. If the sound rises, the water is warming.',
+    },
   },
   {
     id: 'aerosols',
@@ -95,6 +113,15 @@ export const DISCS: Disc[] = [
     listen: 'Mi aire con polvo, humo y sal. Sonidos tenues, más partículas.',
     frames: mockFrames(29, 0.4),
     real: false,
+    en: {
+      title: 'Haze',
+      variable: 'Aerosols: dust, smoke, sea salt and sulfate',
+      about: 'the dust, smoke and salt floating in my air',
+      instrument: 'Dust and rays, high and faint',
+      howItSounds:
+        'The more particles float in the air, the higher and brighter the sounds. Where there is much more than in the rest of the planet, they pile up and the harmony gets tense.',
+      listen: 'My air with dust, smoke and salt. Faint sounds, more particles.',
+    },
   },
   {
     id: 'forest',
@@ -113,6 +140,15 @@ export const DISCS: Disc[] = [
     listen: 'Mis bosques. Aire claro, árboles más altos.',
     frames: mockFrames(47, 0.6),
     real: false,
+    en: {
+      title: 'Pastoral',
+      variable: 'Forest height',
+      about: 'the height of my forests',
+      instrument: 'Wind and water, high',
+      howItSounds:
+        'The taller the trees, the higher and clearer the sounds of wind and water. Where the forest drifts away from what is normal for its region, it gets tense.',
+      listen: 'My forests. Clear air, taller trees.',
+    },
   },
   {
     id: 'co2',
@@ -131,12 +167,21 @@ export const DISCS: Disc[] = [
     listen: 'Mi aire. Si el sonido se vuelve denso y pesado, hay más CO₂.',
     frames: mockFrames(65, 1),
     real: false,
+    en: {
+      title: 'Breathing',
+      variable: 'Carbon dioxide in the air',
+      about: 'the carbon dioxide in my air',
+      instrument: 'Dust and rays, low and dense',
+      howItSounds:
+        'With more carbon dioxide, the sound gets heavier and more recordings pile up at once, like breathing that takes effort.',
+      listen: 'My air. If the sound gets dense and heavy, there is more CO₂.',
+    },
   },
 ]
 
-export function tensionWord(anomaly: number) {
+export function tensionWord(anomaly: number, lang: Lang = 'es') {
   const t = Math.abs(anomaly)
-  if (t < 0.33) return 'baja'
-  if (t < 0.66) return 'media'
-  return 'alta'
+  if (t < 0.33) return lang === 'en' ? 'low' : 'baja'
+  if (t < 0.66) return lang === 'en' ? 'medium' : 'media'
+  return lang === 'en' ? 'high' : 'alta'
 }
