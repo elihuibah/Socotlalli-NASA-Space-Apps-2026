@@ -9,35 +9,40 @@ import {
   ROWS,
   colRow,
   compareWords,
+  dataCredit,
+  dataTitle,
   formatValue,
   frameLabel,
   hasData,
   idx,
   imageUrl,
   isGlobe,
+  layerName,
   normalMeaning,
   placeOf,
   shortMeasure,
   summarize,
 } from '../data/realData'
 import type { DataMap, DiscData } from '../data/realData'
+import { pick as pickLang, useLang, useT } from '../i18n'
+import type { Lang, Text } from '../i18n'
 
 type Mode = 'imagen' | 'valor' | 'anomalia'
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: 'imagen', label: 'Imagen NASA' },
-  { id: 'valor', label: 'Valor' },
-  { id: 'anomalia', label: 'Comparado con lo normal' },
+const MODES: { id: Mode; label: string; en: string }[] = [
+  { id: 'imagen', label: 'Imagen NASA', en: 'NASA image' },
+  { id: 'valor', label: 'Valor', en: 'Value' },
+  { id: 'anomalia', label: 'Comparado con lo normal', en: 'Compared with normal' },
 ]
 
 // Dónde empieza el pizarrón si aún no se ha tocado nada: el centro del mapa.
 const START_CELL = idx(COLS / 2, ROWS / 2 - 3)
 
 /** Por qué una celda no tiene dato, según el disco. */
-function noDataReason(d: DiscData) {
-  if (d.id === 'sst') return 'Es tierra: este disco solo mide la temperatura del mar.'
-  if (isGlobe(d)) return 'Aquí se ve océano, hielo o el borde del globo: no hay bosque que medir.'
-  return 'En esta celda la imagen no trae dato.'
+function noDataReason(d: DiscData, lang: Lang) {
+  if (d.id === 'sst') return pickLang(lang, 'Es tierra: este disco solo mide la temperatura del mar.', 'This is land: this record only measures sea temperature.')
+  if (isGlobe(d)) return pickLang(lang, 'Aquí se ve océano, hielo o el borde del globo: no hay bosque que medir.', 'This shows ocean, ice or the edge of the globe: there is no forest to measure.')
+  return pickLang(lang, 'En esta celda la imagen no trae dato.', 'The image has no data in this cell.')
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -55,13 +60,15 @@ export function Pizarron(props: {
   playingFrame: number
   active: boolean
   onBack: () => void
-  onSay: (text: string) => void
+  onSay: (text: Text) => void
   /** Celda que suena en el modo "lugar en el tiempo" (null = barrido). */
   listenCell?: number | null
   onListen?: (cell: number | null) => void
 }) {
   const { disc, data, error, playing, playingFrame, active, onBack, onSay } = props
   const d = data[disc.id]
+  const lang = useLang()
+  const t = useT()
 
   const [chosenFrame, setChosenFrame] = useState(0)
   // Si este disco está sonando, el pizarrón sigue a la música hasta que se mueva la línea de tiempo.
@@ -79,18 +86,18 @@ export function Pizarron(props: {
     setChosenFrame(Math.max(0, Math.min(nFrames - 1, i)))
   }
 
-  /** Frase corta de Tlalli sobre la celda. */
-  const describe = (data: DiscData, f: number, i: number) => {
-    const place = placeOf(data, f, i, props.data.sst?.mask)
+  /** Frase corta de Tlalli sobre la celda (en el idioma que esté puesto al leerla). */
+  const describe = (data: DiscData, f: number, i: number, seaMask?: number[]): Text => (l) => {
+    const place = placeOf(data, f, i, seaMask, l)
     const where = place.detail ? `${place.name} (${place.detail})` : place.name
-    if (!hasData(data, f, i)) return `${where}: ${noDataReason(data)}`
+    if (!hasData(data, f, i)) return `${where}: ${noDataReason(data, l)}`
     const v = formatValue(data, data.frames[f].values[i])
-    return `${where}: ${v}, ${compareWords(data, data.frames[f].anomaly[i])}.`
+    return `${where}: ${v}, ${compareWords(data, data.frames[f].anomaly[i], l)}.`
   }
 
   const pick = (i: number) => {
     setCell(i)
-    if (d) onSay(describe(d, frame, i))
+    if (d) onSay(describe(d, frame, i, data.sst?.mask))
   }
 
   const cellAt = (e: MouseEvent<HTMLElement>) => {
@@ -113,7 +120,7 @@ export function Pizarron(props: {
   }
 
   return (
-    <section className="lado-pizarron" aria-label="Pizarrón: datos y mapa" inert={!active}>
+    <section className="lado-pizarron" aria-label={t('Pizarrón: datos y mapa', 'Blackboard: data and map')} inert={!active}>
       <div className="piz-marco fieltro">
         <div className="pizarron fieltro">
           {/* Encabezado: qué disco es y qué mide; a la derecha, el regreso a la sala */}
@@ -122,23 +129,25 @@ export function Pizarron(props: {
               <p className="eyebrow">
                 Op. {disc.opus} · {disc.variable}
               </p>
-              <h2>{d?.title ?? disc.title}</h2>
-              {d && <p className="piz-mide">{shortMeasure(d)}</p>}
+              <h2>{d ? dataTitle(d, lang) : disc.title}</h2>
+              {d && <p className="piz-mide">{shortMeasure(d, lang)}</p>}
             </div>
             <button type="button" className="btn-fieltro fieltro cosido piz-volver" onClick={onBack}>
-              <IconArrow back /> Volver al tocadiscos
+              <IconArrow back /> {t('Volver al tocadiscos', 'Back to the turntable')}
             </button>
           </header>
 
           {!d ? (
-            <p className="piz-cargando">{error ? `No pude leer los datos: ${error}` : 'Cargando los datos del satélite…'}</p>
+            <p className="piz-cargando">
+              {error ? t(`No pude leer los datos: ${error}`, `I couldn't read the data: ${error}`) : t('Cargando los datos del satélite…', 'Loading the satellite data…')}
+            </p>
           ) : (
             /* Dos columnas que no cambian de un disco a otro:
                izquierda = modos, mapa y línea de tiempo; derecha = «Este lugar» y «Todo el mapa». */
             <div className="piz-cuerpo">
               <div className="piz-izq">
                 <div className="piz-fila-modos">
-                  <div className="piz-modos" role="radiogroup" aria-label="Qué se ve en el mapa">
+                  <div className="piz-modos" role="radiogroup" aria-label={t('Qué se ve en el mapa', 'What the map shows')}>
                     {MODES.map((m) => (
                       <button
                         key={m.id}
@@ -148,11 +157,11 @@ export function Pizarron(props: {
                         className={`piz-modo${mode === m.id ? ' is-on' : ''}`}
                         onClick={() => setMode(m.id)}
                       >
-                        {m.label}
+                        {t(m.label, m.en)}
                       </button>
                     ))}
                   </div>
-                  {mode === 'imagen' ? <p className="piz-leyenda">Toca un lugar del mapa.</p> : <Legend d={d} mode={mode} />}
+                  {mode === 'imagen' ? <p className="piz-leyenda">{t('Toca un lugar del mapa.', 'Tap a place on the map.')}</p> : <Legend d={d} mode={mode} />}
                 </div>
 
                 <MapView
@@ -176,27 +185,32 @@ export function Pizarron(props: {
                 />
               </div>
 
-              <aside className="piz-datos" aria-label="Estadísticas">
+              <aside className="piz-datos" aria-label={t('Estadísticas', 'Statistics')}>
                 {cell === null ? (
                   <div className="piz-tarjeta piz-lugar is-vacio">
-                    <p className="eyebrow">Este lugar</p>
-                    <p className="piz-lugar-nombre">Elige un lugar</p>
-                    <p className="piz-sin-dato">Toca el mapa y aquí verás cuánto mide ese lugar y cómo se compara con lo normal.</p>
+                    <p className="eyebrow">{t('Este lugar', 'This place')}</p>
+                    <p className="piz-lugar-nombre">{t('Elige un lugar', 'Choose a place')}</p>
+                    <p className="piz-sin-dato">
+                      {t(
+                        'Toca el mapa y aquí verás cuánto mide ese lugar y cómo se compara con lo normal.',
+                        'Tap the map to see how much that place measures and how it compares with normal.',
+                      )}
+                    </p>
                   </div>
                 ) : (
-                  <CellStats d={d} frame={frame} cell={cell} place={placeOf(d, frame, cell, data.sst?.mask)} />
+                  <CellStats d={d} frame={frame} cell={cell} place={placeOf(d, frame, cell, data.sst?.mask, lang)} />
                 )}
                 {/* Modo "lugar en el tiempo": solo tiene sentido si el disco trae varias fechas del mismo mapa. */}
                 {props.onListen && !isGlobe(d) && d.frames.length > 1 && (
                   props.listenCell !== null && props.listenCell !== undefined ? (
                     <button type="button" className="btn-texto piz-escuchar" onClick={() => props.onListen!(null)}>
-                      Volver al barrido de oeste a este
+                      {t('Volver al barrido de oeste a este', 'Back to the west-to-east sweep')}
                     </button>
                   ) : (
                     cell !== null &&
                     hasData(d, frame, cell) && (
                       <button type="button" className="btn-texto piz-escuchar" onClick={() => props.onListen!(cell)}>
-                        Escuchar solo este lugar a lo largo del tiempo
+                        {t('Escuchar solo este lugar a lo largo del tiempo', 'Listen to just this place over time')}
                       </button>
                     )
                   )
@@ -206,7 +220,7 @@ export function Pizarron(props: {
             </div>
           )}
 
-          {d && <p className="piz-credito">{d.credit}</p>}
+          {d && <p className="piz-credito">{dataCredit(d, lang)}</p>}
         </div>
       </div>
     </section>
@@ -227,6 +241,8 @@ function MapView(props: {
   const { d, frame, mode, cell, hover } = props
   const f = d.frames[frame]
   const globe = isGlobe(d)
+  const lang = useLang()
+  const t = useT()
 
   const rect = (i: number, className: string) => {
     const { col, row } = colRow(i)
@@ -241,8 +257,11 @@ function MapView(props: {
         className="piz-mapa-area"
         role="application"
         tabIndex={0}
-        aria-roledescription="mapa"
-        aria-label={`Mapa de ${d.title}, ${frameLabel(d, frame)}. Toca un lugar o usa las flechas para moverte.`}
+        aria-roledescription={t('mapa', 'map')}
+        aria-label={t(
+          `Mapa de ${d.title}, ${frameLabel(d, frame)}. Toca un lugar o usa las flechas para moverte.`,
+          `Map of ${dataTitle(d, lang)}, ${frameLabel(d, frame, lang)}. Tap a place or use the arrow keys to move.`,
+        )}
         onClick={props.onPick}
         onMouseMove={props.onHover}
         onMouseLeave={() => props.onHover(null)}
@@ -279,12 +298,14 @@ function MapView(props: {
 }
 
 function Legend({ d, mode }: { d: DiscData; mode: Mode }) {
+  const lang = useLang()
+  const t = useT()
   if (mode === 'valor') {
     return (
       <p className="piz-leyenda">
         <span className="piz-escala" style={{ background: `linear-gradient(90deg, transparent, ${d.accent})` }} />
         <span>
-          {formatValue(d, 0)} a {formatValue(d, 1)}
+          {formatValue(d, 0)} {t('a', 'to')} {formatValue(d, 1)}
         </span>
       </p>
     )
@@ -292,7 +313,7 @@ function Legend({ d, mode }: { d: DiscData; mode: Mode }) {
   return (
     <p className="piz-leyenda">
       <span className="piz-escala" style={{ background: 'linear-gradient(90deg, #7FA6DE, transparent, #E3A08A)' }} />
-      <span>Por debajo · por encima {normalMeaning(d)}</span>
+      <span>{t(`Por debajo · por encima ${normalMeaning(d)}`, `Below · above ${normalMeaning(d, lang)}`)}</span>
     </p>
   )
 }
@@ -307,33 +328,35 @@ function Timeline(props: {
   onFollow: () => void
 }) {
   const { d, frame, following, canFollow } = props
+  const lang = useLang()
+  const t = useT()
   const n = d.frames.length
-  const what = isGlobe(d) ? 'Vista' : 'Fecha'
+  const what = isGlobe(d) ? t('Vista', 'View') : t('Fecha', 'Date')
   if (n === 1) {
     return (
       <p className="piz-tiempo is-unico">
-        {what}: <strong>{frameLabel(d, 0)}</strong> · una sola imagen
+        {what}: <strong>{frameLabel(d, 0, lang)}</strong> · {t('una sola imagen', 'a single image')}
       </p>
     )
   }
   return (
     <div className="piz-tiempo">
-      <button type="button" className="piz-paso" onClick={() => props.onFrame(frame - 1)} disabled={frame === 0} aria-label={`${what} anterior`}>
+      <button type="button" className="piz-paso" onClick={() => props.onFrame(frame - 1)} disabled={frame === 0} aria-label={t(`${what} anterior`, `Previous ${what.toLowerCase()}`)}>
         ‹
       </button>
       <label className="piz-deslizador">
         <span className="piz-tiempo-texto">
-          {what} {frame + 1} de {n}: <strong>{frameLabel(d, frame)}</strong>
-          {following && <span className="piz-siguiendo"> · sigue a la música</span>}
+          {what} {frame + 1} {t('de', 'of')} {n}: <strong>{frameLabel(d, frame, lang)}</strong>
+          {following && <span className="piz-siguiendo"> · {t('sigue a la música', 'following the music')}</span>}
         </span>
-        <input type="range" min={0} max={n - 1} step={1} value={frame} onChange={(e) => props.onFrame(Number(e.target.value))} aria-valuetext={frameLabel(d, frame)} />
+        <input type="range" min={0} max={n - 1} step={1} value={frame} onChange={(e) => props.onFrame(Number(e.target.value))} aria-valuetext={frameLabel(d, frame, lang)} />
       </label>
-      <button type="button" className="piz-paso" onClick={() => props.onFrame(frame + 1)} disabled={frame === n - 1} aria-label={`${what} siguiente`}>
+      <button type="button" className="piz-paso" onClick={() => props.onFrame(frame + 1)} disabled={frame === n - 1} aria-label={t(`${what} siguiente`, `Next ${what.toLowerCase()}`)}>
         ›
       </button>
       {canFollow && (
         <button type="button" className="btn-texto piz-seguir" onClick={props.onFollow}>
-          Seguir la música
+          {t('Seguir la música', 'Follow the music')}
         </button>
       )}
     </div>
@@ -345,40 +368,44 @@ function Timeline(props: {
  *  Siempre al pie de la columna derecha, con las mismas tres filas en todos los discos. */
 function MapSummaryView(props: { d: DiscData; frame: number; seaMask?: number[]; onPick: (i: number) => void }) {
   const { d, frame, seaMask, onPick } = props
+  const lang = useLang()
+  const t = useT()
   const summary = summarize(d, frame)
   // En el globo el nombre es el de la vista (el mismo para todo); se dice la posición.
   const where = (i: number) => {
-    const p = placeOf(d, frame, i, seaMask)
+    const p = placeOf(d, frame, i, seaMask, lang)
     return isGlobe(d) ? capitalize(p.detail) : p.name
   }
   return (
     <div className="piz-tarjeta piz-resumen">
-      <p className="eyebrow">Todo el mapa · {frameLabel(d, frame)}</p>
+      <p className="eyebrow">
+        {t('Todo el mapa', 'Whole map')} · {frameLabel(d, frame, lang)}
+      </p>
       {summary ? (
         <dl className="piz-cifras">
           <div>
             <dd>{formatValue(d, summary.mean)}</dd>
-            <dt>Promedio</dt>
+            <dt>{t('Promedio', 'Average')}</dt>
           </div>
           <div>
             <dd>
-              <button type="button" className="piz-ir" onClick={() => onPick(summary.maxIndex)} title={`Ir a ${where(summary.maxIndex)}`}>
+              <button type="button" className="piz-ir" onClick={() => onPick(summary.maxIndex)} title={t(`Ir a ${where(summary.maxIndex)}`, `Go to ${where(summary.maxIndex)}`)}>
                 {formatValue(d, summary.max)}
               </button>
             </dd>
-            <dt>Lo más alto</dt>
+            <dt>{t('Lo más alto', 'Highest')}</dt>
           </div>
           <div>
             <dd>
-              <button type="button" className="piz-ir" onClick={() => onPick(summary.minIndex)} title={`Ir a ${where(summary.minIndex)}`}>
+              <button type="button" className="piz-ir" onClick={() => onPick(summary.minIndex)} title={t(`Ir a ${where(summary.minIndex)}`, `Go to ${where(summary.minIndex)}`)}>
                 {formatValue(d, summary.min)}
               </button>
             </dd>
-            <dt>Lo más bajo</dt>
+            <dt>{t('Lo más bajo', 'Lowest')}</dt>
           </div>
         </dl>
       ) : (
-        <p className="piz-sin-dato">En esta vista no hay celdas con dato.</p>
+        <p className="piz-sin-dato">{t('En esta vista no hay celdas con dato.', 'There are no cells with data in this view.')}</p>
       )}
     </div>
   )
@@ -388,24 +415,26 @@ function CellStats({ d, frame, cell, place }: { d: DiscData; frame: number; cell
   const f = d.frames[frame]
   const ok = hasData(d, frame, cell)
   const a = f.anomaly[cell]
+  const lang = useLang()
+  const t = useT()
   return (
     <div className="piz-tarjeta piz-lugar">
-      <p className="eyebrow">Este lugar</p>
+      <p className="eyebrow">{t('Este lugar', 'This place')}</p>
       <p className="piz-lugar-nombre">
         {place.name}
         {place.detail && <span className="piz-lugar-detalle"> · {place.detail}</span>}
       </p>
       {!ok ? (
-        <p className="piz-sin-dato">{noDataReason(d)}</p>
+        <p className="piz-sin-dato">{noDataReason(d, lang)}</p>
       ) : (
         <>
           <p className="piz-valor">
             {formatValue(d, f.values[cell])}
-            <span className="piz-valor-que">{d.units ? 'en esta celda' : 'de intensidad'}</span>
+            <span className="piz-valor-que">{d.units ? t('en esta celda', 'in this cell') : t('de intensidad', 'intensity')}</span>
           </p>
           <div className="piz-anomalia">
             <p>
-              <strong>{capitalize(compareWords(d, a))}</strong>
+              <strong>{capitalize(compareWords(d, a, lang))}</strong>
             </p>
             <span className="piz-barra" aria-hidden="true">
               <span className="piz-barra-cero" />
@@ -432,16 +461,17 @@ function shortLayerName(name: string) {
 /** Aerosoles: cuánto aporta cada tipo de partícula en la celda. */
 function Layers({ d, frame, cell }: { d: DiscData; frame: number; cell: number }) {
   const layers = d.frames[frame].layers!
-  const names = d.layer_names!
+  const lang = useLang()
+  const t = useT()
   const keys = Object.keys(layers).sort((x, y) => layers[y][cell] - layers[x][cell])
   return (
     <div className="piz-capas">
-      <p className="piz-mini">Qué flota aquí</p>
+      <p className="piz-mini">{t('Qué flota aquí', 'What floats here')}</p>
       <ul>
         {keys.map((k) => (
           <li key={k}>
-            <span className="piz-capa-nombre" title={capitalize(names[k] ?? k)}>
-              {shortLayerName(names[k] ?? k)}
+            <span className="piz-capa-nombre" title={capitalize(layerName(d, k, lang))}>
+              {shortLayerName(layerName(d, k, lang))}
             </span>
             <span className="piz-capa-barra" aria-hidden="true">
               <span style={{ width: `${Math.round(layers[k][cell] * 100)}%` }} />
@@ -456,6 +486,7 @@ function Layers({ d, frame, cell }: { d: DiscData; frame: number; cell: number }
 
 /** Cómo cambió este lugar en todas las fechas del disco. */
 function Sparkline({ d, frame, cell }: { d: DiscData; frame: number; cell: number }) {
+  const lang = useLang()
   const W = 100
   const H = 34
   const n = d.frames.length
@@ -472,15 +503,15 @@ function Sparkline({ d, frame, cell }: { d: DiscData; frame: number; cell: numbe
   return (
     <div className="piz-historia">
       <p className="piz-mini">
-        En todas las fechas: de {formatValue(d, lo)} a {formatValue(d, hi)}
+        {pickLang(lang, 'En todas las fechas: de', 'Across all dates: from')} {formatValue(d, lo)} {pickLang(lang, 'a', 'to')} {formatValue(d, hi)}
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <polyline points={line} fill="none" stroke="currentColor" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
         {cur !== null && <circle cx={x(frame)} cy={y(cur)} r="2.6" fill="#F4E2A4" />}
       </svg>
       <p className="piz-mini piz-historia-fechas">
-        <span>{frameLabel(d, 0)}</span>
-        <span>{frameLabel(d, n - 1)}</span>
+        <span>{frameLabel(d, 0, lang)}</span>
+        <span>{frameLabel(d, n - 1, lang)}</span>
       </p>
     </div>
   )

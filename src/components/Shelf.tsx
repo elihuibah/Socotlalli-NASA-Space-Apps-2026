@@ -2,6 +2,7 @@ import type { KeyboardEvent, PointerEvent } from 'react'
 import type { Disc, DiscId } from '../data/discs'
 import { IconArrow, IconPlay } from './Art'
 import { CoverImg, RecordImg } from './Felt'
+import { useT } from '../i18n'
 
 interface Props {
   discs: Disc[]
@@ -30,8 +31,9 @@ function roveFocus(e: KeyboardEvent<HTMLDivElement>) {
 
 export function Shelf(props: Props) {
   const { discs, selectedId, currentId, draggingId } = props
+  const t = useT()
   return (
-      <div className="fundas" role="group" aria-label="Vinilos" onKeyDown={roveFocus}>
+      <div className="fundas" role="group" aria-label={t('Vinilos', 'Records')} onKeyDown={roveFocus}>
         {discs.map((d) => {
           const playing = d.id === currentId
           const selected = d.id === selectedId
@@ -49,7 +51,7 @@ export function Shelf(props: Props) {
                 props.registerCover(d.id, el)
               }}
               aria-pressed={selected}
-              aria-label={`Op. ${d.opus}, ${d.title}: ${d.variable}${playing ? '. Sonando ahora' : ''}`}
+              aria-label={`Op. ${d.opus}, ${d.title}: ${d.variable}${playing ? t('. Sonando ahora', '. Now playing') : ''}`}
               onClick={() => props.onSelect(d.id)}
               onPointerDown={(e) => props.onDragStart(e, d.id)}
               onPointerMove={props.onDragMove}
@@ -68,7 +70,7 @@ export function Shelf(props: Props) {
                   <span className="funda-titulo">{d.title}</span>
                 </span>
               </span>
-              {playing && <span className="etiqueta-sonando">Sonando</span>}
+              {playing && <span className="etiqueta-sonando">{t('Sonando', 'Playing')}</span>}
             </button>
           )
         })}
@@ -88,12 +90,15 @@ export function DiscInfo(props: {
   onLearn: (d: Disc) => void
 }) {
   const { disc, isCurrent } = props
+  const t = useT()
   if (!disc) {
     return (
       <div className="ficha">
-        <p className="eyebrow">Los vinilos</p>
-        <h2>Cuatro vinilos, cuatro partes de la Tierra</h2>
-        <p className="ficha-como">Haz clic en una funda para conocerla, o arrástrala directo al tocadiscos.</p>
+        <p className="eyebrow">{t('Los vinilos', 'The records')}</p>
+        <h2>{t('Cuatro vinilos, cuatro partes de la Tierra', 'Four records, four parts of the Earth')}</h2>
+        <p className="ficha-como">
+          {t('Haz clic en una funda para conocerla, o arrástrala directo al tocadiscos.', 'Click a sleeve to learn about it, or drag it straight to the turntable.')}
+        </p>
       </div>
     )
   }
@@ -107,22 +112,27 @@ export function DiscInfo(props: {
       <div className="ficha-pie">
         {isCurrent ? (
           <button type="button" className="btn-fieltro fieltro cosido btn-conocer" onClick={() => props.onLearn(disc)}>
-            Conocer más <IconArrow />
+            {t('Conocer más', 'Learn more')} <IconArrow />
           </button>
         ) : (
           <button
             type="button"
             className="btn-redondo fieltro cosido"
             onClick={() => props.onPlace(disc)}
-            aria-label={`Reproducir ${disc.title}`}
-            title="Reproducir este disco"
+            aria-label={t(`Reproducir ${disc.title}`, `Play ${disc.title}`)}
+            title={t('Reproducir este disco', 'Play this record')}
           >
             <IconPlay />
           </button>
         )}
         <p className="ficha-datos">
-          {disc.instrument} · {disc.frames.length} {disc.id === 'forest' ? 'vistas del globo' : disc.frames.length === 1 ? 'fotograma' : 'fotogramas'} ·{' '}
-          {disc.real ? 'datos de la NASA' : 'cargando datos…'}
+          {disc.instrument} · {disc.frames.length}{' '}
+          {disc.id === 'forest'
+            ? t('vistas del globo', 'views of the globe')
+            : disc.frames.length === 1
+              ? t('fotograma', 'frame')
+              : t('fotogramas', 'frames')}{' '}
+          · {disc.real ? t('datos de la NASA', 'NASA data') : t('cargando datos…', 'loading data…')}
         </p>
       </div>
     </div>

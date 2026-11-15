@@ -2,6 +2,7 @@
 // Rejilla de 32x16 celdas, index = row * COLS + col; row 0 es el norte y col 0 el oeste.
 // Los nombres de lugar copian pipeline/describe.py para que la app y el texto del pipeline coincidan.
 import type { DiscId } from './discs'
+import type { Lang } from '../i18n'
 
 export const COLS = 32
 export const ROWS = 16
@@ -76,11 +77,13 @@ export function latLon(col: number, row: number) {
   return { lat: 90 - ((row + 0.5) * 180) / ROWS, lon: -180 + ((col + 0.5) * 360) / COLS }
 }
 
-export function coords(lat: number, lon: number) {
-  return `${Math.abs(lat).toFixed(0)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(0)}°${lon >= 0 ? 'E' : 'O'}`
+export function coords(lat: number, lon: number, lang: Lang = 'es') {
+  const west = lang === 'en' ? 'W' : 'O'
+  return `${Math.abs(lat).toFixed(0)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(0)}°${lon >= 0 ? 'E' : west}`
 }
 
-function ocean(lat: number, lon: number) {
+function ocean(lat: number, lon: number, lang: Lang) {
+  if (lang === 'en') return oceanEn(lat, lon)
   if (lat > 66) return 'el Ártico'
   if (lat < -55) return 'el océano Austral'
   const hemi = lat > 15 ? 'norte' : lat < -15 ? 'sur' : 'ecuatorial'
@@ -89,22 +92,39 @@ function ocean(lat: number, lon: number) {
   return `el Pacífico ${hemi}`
 }
 
-function land(lat: number, lon: number): string | null {
-  if (lat < -60) return 'la Antártida'
-  if (lat > 66) return 'el Ártico'
-  if (lon >= -170 && lon < -50 && lat >= 13) return 'Norteamérica'
-  if (lon >= -92 && lon < -77 && lat >= 7 && lat < 13) return 'Centroamérica'
-  if (lon >= -82 && lon < -34 && lat < 13) return 'Sudamérica'
-  if (lon >= 34 && lon < 60 && lat >= 12 && lat < 42) return 'Medio Oriente'
-  if (lon >= -20 && lon < 55 && lat >= -36 && lat < 37) return 'África'
-  if (lon >= -25 && lon < 45 && lat >= 36) return 'Europa'
-  if (lon >= 110 && lon <= 180 && lat < -10) return 'Oceanía'
+/** Las mismas reglas que ocean(), con los nombres en inglés. */
+function oceanEn(lat: number, lon: number) {
+  if (lat > 66) return 'the Arctic'
+  if (lat < -55) return 'the Southern Ocean'
+  const hemi = lat > 15 ? 'North ' : lat < -15 ? 'South ' : 'Equatorial '
+  if (lon >= 20 && lon < 110 && lat < 30) return `the ${hemi === 'Equatorial ' ? '' : hemi}Indian Ocean`
+  if ((lon >= -70 && lon < 20) || (lat > 10 && lon >= -100 && lon < -70)) return `the ${hemi}Atlantic`
+  return `the ${hemi}Pacific`
+}
+
+function land(lat: number, lon: number, lang: Lang): string | null {
+  const en = lang === 'en'
+  if (lat < -60) return en ? 'Antarctica' : 'la Antártida'
+  if (lat > 66) return en ? 'the Arctic' : 'el Ártico'
+  if (lon >= -170 && lon < -50 && lat >= 13) return en ? 'North America' : 'Norteamérica'
+  if (lon >= -92 && lon < -77 && lat >= 7 && lat < 13) return en ? 'Central America' : 'Centroamérica'
+  if (lon >= -82 && lon < -34 && lat < 13) return en ? 'South America' : 'Sudamérica'
+  if (lon >= 34 && lon < 60 && lat >= 12 && lat < 42) return en ? 'the Middle East' : 'Medio Oriente'
+  if (lon >= -20 && lon < 55 && lat >= -36 && lat < 37) return en ? 'Africa' : 'África'
+  if (lon >= -25 && lon < 45 && lat >= 36) return en ? 'Europe' : 'Europa'
+  if (lon >= 110 && lon <= 180 && lat < -10) return en ? 'Oceania' : 'Oceanía'
   if (lon >= 45 && lon <= 180 && lat >= -10) return 'Asia'
   return null
 }
 
 /** Posición en pantalla, para las vistas del globo (no tienen latitud ni longitud). */
-export function screenPosition(col: number, row: number) {
+export function screenPosition(col: number, row: number, lang: Lang = 'es') {
+  if (lang === 'en') {
+    const vert = row < 5 ? 'top' : row >= 11 ? 'bottom' : 'center'
+    const horiz = col < 11 ? 'left' : col >= 21 ? 'right' : ''
+    if (vert === 'center' && horiz) return `center ${horiz}`
+    return `${vert} ${horiz}`.trim()
+  }
   const vert = row < 5 ? 'arriba' : row >= 11 ? 'abajo' : 'al centro'
   const horiz = col < 11 ? 'a la izquierda' : col >= 21 ? 'a la derecha' : ''
   if (vert === 'al centro' && horiz) return `al centro, ${horiz}`
@@ -120,50 +140,128 @@ export interface Place {
  * Nombre de la celda. Como en describe.auto(): si en el disco de temperatura del mar la
  * celda tiene dato, es mar; si no, es tierra. `seaMask` es la máscara de sst.json.
  */
-export function placeOf(d: DiscData, frame: number, i: number, seaMask?: number[]): Place {
+export function placeOf(d: DiscData, frame: number, i: number, seaMask?: number[], lang: Lang = 'es'): Place {
   const { col, row } = colRow(i)
   if (isGlobe(d)) {
-    return { name: d.frames[frame].view ?? 'Esta vista del globo', detail: screenPosition(col, row) }
+    const fallback = lang === 'en' ? 'This view of the globe' : 'Esta vista del globo'
+    return { name: viewName(d.frames[frame].view, lang) ?? fallback, detail: screenPosition(col, row, lang) }
   }
   const { lat, lon } = latLon(col, row)
-  const c = coords(lat, lon)
+  const c = coords(lat, lon, lang)
   const sea = seaMask ? seaMask[i] === 1 : d.id === 'sst'
-  if (sea) return { name: capitalize(ocean(lat, lon)), detail: c }
-  const name = land(lat, lon)
-  return { name: name ? capitalize(name) : `Cerca de ${c}`, detail: name ? c : '' }
+  if (sea) return { name: capitalize(ocean(lat, lon, lang)), detail: c }
+  const name = land(lat, lon, lang)
+  return { name: name ? capitalize(name) : `${lang === 'en' ? 'Near' : 'Cerca de'} ${c}`, detail: name ? c : '' }
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 
-/** '2007-08' -> 'Agosto de 2007';  '2020-01-15' -> '15 de enero de 2020'. */
-export function dateLabel(date: string) {
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** '2007-08' -> 'Agosto de 2007';  '2020-01-15' -> '15 de enero de 2020'. En inglés: 'August 2007', 'January 15, 2020'. */
+export function dateLabel(date: string, lang: Lang = 'es') {
   const [y, m, day] = date.split('-')
+  if (lang === 'en') {
+    const monthEn = MONTHS_EN[Number(m) - 1] ?? m
+    return day ? `${monthEn} ${Number(day)}, ${y}` : `${monthEn} ${y}`
+  }
   const month = MONTHS[Number(m) - 1] ?? m
   return day ? `${Number(day)} de ${month} de ${y}` : `${capitalize(month)} de ${y}`
 }
 
 /** Etiqueta del fotograma: fecha o, en el globo, la vista. */
-export const frameLabel = (d: DiscData, frame: number) => d.frames[frame].view ?? dateLabel(d.frames[frame].date)
+export const frameLabel = (d: DiscData, frame: number, lang: Lang = 'es') =>
+  viewName(d.frames[frame].view, lang) ?? dateLabel(d.frames[frame].date, lang)
 
 /** Con qué se compara la anomalía de este disco (ver notes.md, "Anomalía"), ya con "de". */
-export function normalMeaning(d: DiscData) {
+export function normalMeaning(d: DiscData, lang: Lang = 'es') {
+  if (lang === 'en') {
+    if (isGlobe(d)) return 'the average of this view'
+    if (d.frames.length === 1) return 'the planet’s average'
+    return 'its average across all dates'
+  }
   if (isGlobe(d)) return 'del promedio de esta vista'
   if (d.frames.length === 1) return 'del promedio del planeta'
   return 'de su promedio en todas las fechas'
 }
 
 /** "Un poco por encima del promedio del planeta", "cerca de su promedio en todas las fechas"... */
-export function compareWords(d: DiscData, a: number) {
+export function compareWords(d: DiscData, a: number, lang: Lang = 'es') {
   const t = Math.abs(a)
+  if (lang === 'en') {
+    if (t < 0.12) return `close to ${normalMeaning(d, lang)}`
+    const howEn = t < 0.4 ? 'slightly' : t < 0.7 ? 'well' : 'far'
+    return `${howEn} ${a > 0 ? 'above' : 'below'} ${normalMeaning(d, lang)}`
+  }
   if (t < 0.12) return `cerca ${normalMeaning(d)}`
   const how = t < 0.4 ? 'un poco' : t < 0.7 ? 'bastante' : 'muy'
   return `${how} ${a > 0 ? 'por encima' : 'por debajo'} ${normalMeaning(d)}`
 }
 
 /** Primera frase de `measure`, sin las notas técnicas del pipeline. */
-export const shortMeasure = (d: DiscData) => d.measure.split(/;|\. /)[0].replace(/\.$/, '') + '.'
+export const shortMeasure = (d: DiscData, lang: Lang = 'es') =>
+  (lang === 'en' ? DATA_EN[d.id].measure : d.measure.split(/;|\. /)[0].replace(/\.$/, '')) + '.'
+
+// ---- Textos de los disc.json en inglés ----------------------------------------
+// Los disc.json (pipeline/) vienen en español; aquí está su versión en inglés.
+const DATA_EN: Record<DiscId, { title: string; measure: string; credit: string }> = {
+  sst: {
+    title: 'Sea temperature',
+    measure: 'Sea surface temperature, cell average',
+    credit:
+      'NASA Scientific Visualization Studio, Global Sea Surface Currents and Temperature (Greg Shirah, Horace Mitchell, Eric Sokolowsky; ECCO2 data by Hong Zhang and Dimitris Menemenlis, NASA/JPL). https://svs.gsfc.nasa.gov/3912',
+  },
+  aerosols: {
+    title: 'Aerosols',
+    measure: 'Aerosol intensity in the cell (0 to 1), adding up the 4 types',
+    credit:
+      'NASA Scientific Visualization Studio, GEOS Aerosols (2025) (visualization: Joseph V. Ardizzone, Helen-Nicole Kostis; science: Lesley Ott; GEOS-FP 2 km Replay model, August 19, 2025, 20:00 UTC). https://svs.gsfc.nasa.gov/5669',
+  },
+  forest: {
+    title: 'Forest height',
+    measure: 'Height of the tallest vegetation in the cell (90th percentile), in meters',
+    credit:
+      'NASA Scientific Visualization Studio, GEDI Forest Height (visualization: Kel Elkins, Horace Mitchell, Greg Shirah; science: Temilola Fatoyinbo, Atticus Stovall; GEDI L2B RH100 data, April 2019 to April 2020). https://svs.gsfc.nasa.gov/4950',
+  },
+  co2: {
+    title: 'Carbon dioxide',
+    measure: 'Share of the cell with near-surface CO2 at 430 ppm or more',
+    credit:
+      'NASA Scientific Visualization Studio, DYAMOND Global Carbon Dioxide for Science On A Sphere (visualization: AJ Christensen, Greg Shirah, Helen-Nicole Kostis, Mark SubbaRao; science: Lesley Ott, Brad Weir, William Putman, Tomohiro Oda; DYAMOND GEOS-MITgcm model, NASA/GMAO and NASA/JPL). https://svs.gsfc.nasa.gov/5436',
+  },
+}
+
+const VIEWS_EN: Record<string, string> = {
+  'Asia oriental y Oceanía': 'East Asia and Oceania',
+  'Asia del sur y el océano Índico': 'South Asia and the Indian Ocean',
+  'África oriental y Medio Oriente': 'East Africa and the Middle East',
+  'África y Europa': 'Africa and Europe',
+  'El Atlántico sur, entre Sudamérica y África': 'The South Atlantic, between South America and Africa',
+  Sudamérica: 'South America',
+  'Las Américas': 'The Americas',
+  'Norteamérica y el Pacífico': 'North America and the Pacific',
+}
+
+const LAYERS_EN: Record<string, string> = {
+  black_carbon: 'black carbon (wildfire smoke)',
+  dust: 'dust',
+  sea_salt: 'sea salt',
+  sulfate: 'sulfate',
+}
+
+/** Nombre de la vista del globo en el idioma pedido (undefined si el fotograma no es una vista). */
+export function viewName(view: string | undefined, lang: Lang) {
+  if (!view || lang !== 'en') return view
+  return VIEWS_EN[view] ?? view
+}
+
+export const dataTitle = (d: DiscData, lang: Lang) => (lang === 'en' ? DATA_EN[d.id].title : d.title)
+export const dataCredit = (d: DiscData, lang: Lang) => (lang === 'en' ? DATA_EN[d.id].credit : d.credit)
+/** Nombre de un tipo de partícula ("el polvo"); en inglés, "dust". */
+export const layerName = (d: DiscData, key: string, lang: Lang) =>
+  lang === 'en' ? (LAYERS_EN[key] ?? key) : (d.layer_names?.[key] ?? key)
 
 // ---- Resúmenes ---------------------------------------------------------------
 export interface MapSummary {
