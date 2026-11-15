@@ -33,15 +33,18 @@ class RampBar:
         self.pos = (xs - extent[0]) / (extent[1] - extent[0])
 
     def values(self, rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """rgb: (alto, ancho, 3). Devuelve (posición 0..1, distancia al color más cercano)."""
-        best = np.zeros(rgb.shape[:2], dtype=int)
-        dist = np.full(rgb.shape[:2], np.inf)
-        for i, c in enumerate(self.colors):  # por color, para no usar memoria de más
-            d = ((rgb - c) ** 2).sum(axis=-1)
-            closer = d < dist
-            best[closer] = i
-            dist[closer] = d[closer]
-        return self.pos[best], np.sqrt(dist)
+        """rgb: (alto, ancho, 3). Devuelve (posición 0..1, distancia al color más cercano).
+        Se buscan solo los colores distintos de la imagen (son muchos menos que los píxeles)."""
+        flat = rgb.reshape(-1, 3)
+        uniq, inv = np.unique(flat, axis=0, return_inverse=True)
+        best = np.zeros(len(uniq), dtype=int)
+        dist = np.zeros(len(uniq))
+        for i in range(0, len(uniq), 4096):
+            d = ((uniq[i:i + 4096, None, :] - self.colors[None, :, :]) ** 2).sum(axis=-1)
+            best[i:i + 4096] = d.argmin(axis=1)
+            dist[i:i + 4096] = np.sqrt(d.min(axis=1))
+        inv = inv.reshape(-1)
+        return self.pos[best][inv].reshape(rgb.shape[:2]), dist[inv].reshape(rgb.shape[:2])
 
 
 def locate(img: Image.Image) -> tuple[int, int, int]:

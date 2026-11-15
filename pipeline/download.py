@@ -6,6 +6,7 @@ Salida: pipeline/raw/<id>/  (fotogramas AAAA-MM[-DD].<ext>, colorbar.png y dates
 Cada fuente dice cómo leer su archivo de fechas y qué fotogramas elegir.
 Solo usa la librería estándar.
 """
+import subprocess
 import sys
 import urllib.request
 from datetime import datetime
@@ -93,6 +94,38 @@ SOURCES = {
         "numbers": ["0230", "0600", "0800", "1055", "1400", "1650", "1900", "2200"],
         "frame": "frames/3840x2160_16x9_60p/GEDI_global/GEDI_global.{n}.tif",
     },
+    # Mapa plano 2:1 de Science On a Sphere. El nombre de cada fotograma es el año (promedio móvil de 5 años).
+    "giss": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004964/",
+        "colorbar": "giss_navy_anomaly_celsius.png",
+        "numbers": ["1885", "1897", "1909", "1921", "1933", "1945", "1957", "1969", "1981", "1993", "2005", "2015", "2021"],
+        "frame": "frames/2048x1024_2x1_30p/SOSGISS2021c-Rolling1peryear-RollingAverageperyear.{n}.tif",
+    },
+    # Promedio de lluvia de cada mes (IMERG, 2001 a 2022), mapa plano 2:1. Los archivos se llaman m01 a m12.
+    "rain": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a005200/a005241/",
+        "colorbar": "IMERGclim_cbaronly_print.jpg",
+        "colorbar_name": "colorbar.jpg",
+        "stills": {f"m{i:02d}": f"IMERG_{m}_print.jpg" for i, m in enumerate(
+            ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], start=1)},
+    },
+    # Extensión del hielo marino, un fotograma por día desde el 21 de junio de 2002 (el fotograma 1).
+    # Fondo transparente: el hielo es lo único pintado. Se eligen los días 15 de cada mes de 2007.
+    "ice": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a000000/a003500/a003564/",
+        "frame": "frames/4000x2000_2x1_10p/AMSR_E_SeaIce.{n:04d}.png",
+        "named": {"2007-01-15": 1670, "2007-02-15": 1701, "2007-03-15": 1729, "2007-04-15": 1760,
+                  "2007-05-15": 1790, "2007-06-15": 1821, "2007-07-15": 1851, "2007-08-15": 1882,
+                  "2007-09-15": 1913, "2007-10-15": 1943, "2007-11-15": 1974, "2007-12-15": 2004},
+    },
+    # Video de 163 fotogramas (un mes cada uno, desde marzo de 2000) en proyección Mollweide.
+    # Se extraen los 12 meses de 2008 con ffmpeg; la barra de color va dentro de cada fotograma.
+    "fire": {
+        "base": "https://svs.gsfc.nasa.gov/vis/a030000/a030300/a030378/",
+        "video": "mod14a1_m_fire_2304p.mp4",
+        "first_month": (2000, 3),
+        "months": [(2008, m) for m in range(1, 13)],
+    },
 }
 
 
@@ -106,11 +139,38 @@ def fetch(url: str, dest: Path) -> None:
     print(f"  bajado    {dest.name}")
 
 
+def extract_video(src: dict, out: Path) -> None:
+    """Saca de un video un fotograma por mes (el video tiene uno por mes) con ffmpeg."""
+    video = out / src["video"]
+    fetch(src["base"] + src["video"], video)
+    y0, m0 = src["first_month"]
+    for y, m in src["months"]:
+        dest = out / f"{y}-{m:02d}.png"
+        if dest.exists():
+            continue
+        n = (y - y0) * 12 + (m - m0)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vf", f"select=eq(n\,{n})",
+                        "-frames:v", "1", str(dest)], check=True)
+        print(f"  extraído  {dest.name}")
+    # la barra de color es la parte de abajo de cualquier fotograma
+    first = out / f"{src['months'][0][0]}-{src['months'][0][1]:02d}.png"
+    (out / "colorbar.png").write_bytes(first.read_bytes())
+    print(f"OK: {len(src['months'])} fotogramas en {out}")
+
+
 def main() -> None:
     disc_id = sys.argv[1] if len(sys.argv) > 1 else "sst"
     src = SOURCES[disc_id]
     out = RAW / disc_id
     out.mkdir(parents=True, exist_ok=True)
+    if "video" in src:
+        extract_video(src, out)
+        return
+    if "named" in src:  # fotogramas por número, guardados con el nombre (fecha) que les toca
+        for name, n in src["named"].items():
+            fetch(src["base"] + src["frame"].format(n=n), out / f"{name}.{src['frame'].rsplit('.', 1)[1]}")
+        print(f"OK: {len(src['named'])} fotogramas en {out}")
+        return
 
     fetch(src["base"] + src["colorbar"], out / src.get("colorbar_name", "colorbar.png"))
     if "numbers" in src:  # fotogramas elegidos a mano por número (vistas del globo)

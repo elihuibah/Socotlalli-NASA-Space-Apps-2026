@@ -15,6 +15,7 @@ from PIL import Image
 import anomaly
 import describe
 import globe
+import mollweide
 from categories import Categories
 from colorbar import Colorbar
 from contract import CELLS, COLS, DISCS_DIR, FRAMES_DIR, PUBLIC, ROWS
@@ -98,6 +99,75 @@ DISCS = {
                   "Ardizzone, Helen-Nicole Kostis; ciencia: Lesley Ott; modelo GEOS-FP 2 km Replay, "
                   "19 de agosto de 2025, 20:00 UTC). https://svs.gsfc.nasa.gov/5669",
     },
+    "giss": {
+        "title": "Temperatura global",
+        "accent": "#d9421c",   # rojo cálido de su barra
+        "units": "°C",
+        "measure": "Cuánto más caliente o más frío que el promedio de 1951 a 1980 está el aire cerca de "
+                   "la superficie, promedio móvil de cinco años",
+        "range": (-2.0, 2.0),
+        # barra horizontal, azul (-2 °C) a blanco (0) a rojo (+2 °C), medida en colorbar.png
+        "ramp": {"row": 37, "extent": (33, 286)},
+        "text_threshold": 0.5,
+        "place": "auto",
+        "credit": "NASA Scientific Visualization Studio, Global Temperature Anomalies from 1880 to 2021 "
+                  "(visualización: Kathryn Mersmann; datos: NASA GISS, GISTEMP v4). "
+                  "https://svs.gsfc.nasa.gov/4964",
+    },
+    "rain": {
+        "title": "Lluvia",
+        "accent": "#16b7c9",   # turquesa de su barra
+        "units": "mm/día",
+        "measure": "Lluvia promedio de la celda en un día, según el mes (promedio de 2001 a 2022)",
+        "range": (0.0, 24.0),
+        "ramp": {"row": 256, "x_range": (106, 916), "extent": (102, 920), "file": "colorbar.jpg", "all": True},
+        "glob": "m[01][0-9].*",
+        "text_threshold": 1.5,
+        "place": "auto",
+        "credit": "NASA Scientific Visualization Studio, IMERG Monthly Precipitation Climatology "
+                  "(2001 - 2022) (datos: NASA IMERG, misión GPM). https://svs.gsfc.nasa.gov/5241",
+    },
+    "ice": {
+        "title": "Hielo marino",
+        "accent": "#a9d6f0",   # azul hielo
+        "units": "%",
+        "measure": "Porcentaje de la celda cubierto por hielo marino (concentración mayor a 15 %), "
+                   "un día de cada mes de 2007. Solo hay dato cerca de los polos",
+        "value": "area",
+        "alpha": True,         # el hielo es lo único pintado; el resto es transparente
+        "range": (0.0, 100.0),
+        "mask_active": True,   # celdas que nunca tienen hielo cuentan como sin dato
+        "text_threshold": 10.0,
+        "place": "ocean",
+        "show_mean": False,
+        "phrase": ("hielo en {v:.0f} % más de la celda que lo normal del año",
+                   "hielo en {v:.0f} % menos de la celda que lo normal del año"),
+        "credit": "NASA Scientific Visualization Studio, Sea Ice over the Arctic and Antarctic designed for "
+                  "Science On a Sphere (SOS) and WMS (datos: instrumento AMSR-E del satélite Aqua, "
+                  "concentración de 15 % o más; un día de cada mes de 2007). https://svs.gsfc.nasa.gov/3564",
+    },
+    "fire": {
+        "title": "Incendios",
+        "accent": "#f0642a",   # naranja de su barra
+        "units": "",
+        "measure": "Actividad de incendios en la celda (0 a 1): cuántos puntos de fuego activos detectó el "
+                   "satélite durante el mes y qué tan intensos son. Es relativa al mes más activo del disco",
+        "range": (0.0, 1.0),
+        # El video viene en proyección Mollweide: se aplana antes de leerlo. Medido en el fotograma.
+        "mollweide": {"cx": 2052.0, "cy": 1150.5, "a": 2051.0, "b": 1025.0},
+        # barra horizontal de 0.1 a 100 puntos de fuego por 1000 km² al día (escala logarítmica)
+        "ramp": {"row": 2194, "x_range": (174, 935), "extent": (174, 935)},
+        "fire_chroma": 40,      # el mapa de fondo es gris; el fuego tiene color
+        "mask_active": True,
+        "normalize_p": 99.5,    # valores 0..1: el percentil 99.5 de todos los meses pasa a ser 1
+        "text_threshold": 0.08,
+        "place": "land",
+        "show_mean": False,
+        "phrase": ("más incendios que lo normal en el año", "menos incendios que lo normal en el año"),
+        "credit": "NASA Scientific Visualization Studio, Monthly Active Fires (datos: instrumento MODIS "
+                  "del satélite Terra, NASA/GSFC y Universidad de Maryland; mes a mes, 2008). "
+                  "https://svs.gsfc.nasa.gov/30378",
+    },
     "forest": {
         "title": "Altura de los bosques",
         "accent": "#84974a",   # verde del centro de su barra (~25 m)
@@ -125,6 +195,8 @@ DISCS = {
                   "GEDI L2B RH100, abril 2019 a abril 2020). https://svs.gsfc.nasa.gov/4950",
     },
 }
+
+RAMP_TOL = 60.0  # distancia RGB máxima a la barra; las costas y el relieve oscurecen el color
 
 GLOBE_WEB_SIZE = (768, 768)  # las vistas del globo son cuadradas
 
@@ -158,7 +230,7 @@ def main() -> None:
         files = [raw / f"{n}.tif" for n in cfg["views"]]
         files = [f for f in files if f.exists()]
     else:
-        files = sorted(p for p in raw.glob("[12][0-9][0-9][0-9]-*.*"))  # AAAA-MM[-DD].ext
+        files = sorted(p for p in raw.glob(cfg.get("glob", "[12][0-9][0-9][0-9]*.*")))  # AAAA-MM[-DD].ext
     if not files:
         sys.exit(f"No hay fotogramas en {raw}. Corre primero: python pipeline/download.py {disc_id}")
 
@@ -167,7 +239,13 @@ def main() -> None:
     if cfg.get("globe"):
         b = cfg["bar"]
         bar = globe.RampBar(raw / "colorbar.tif", b["row"], b["x_range"], b["extent"])
-    cb = None if (cats or bar) else Colorbar(raw / "colorbar.png", extent=cfg.get("extent"))
+    ramp = None
+    if "ramp" in cfg:
+        r = cfg["ramp"]
+        x0, x1 = r["extent"]
+        ramp = globe.RampBar(raw / r.get("file", "colorbar.png"), r["row"], r.get("x_range", (x0, x1)), r["extent"],
+                             step=2 if "mollweide" in cfg else 1)
+    cb = None if (cats or bar or ramp or cfg.get("alpha")) else Colorbar(raw / "colorbar.png", extent=cfg.get("extent"))
     out_frames = FRAMES_DIR / disc_id
     out_frames.mkdir(parents=True, exist_ok=True)
     DISCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -185,6 +263,20 @@ def main() -> None:
             images.append(web.relative_to(PUBLIC).as_posix())
             print(f"  {cfg['views'][f.stem]}: {np.mean(cell_cov >= 0.03):.0%} de celdas con vegetación")
             continue
+        if cfg.get("alpha"):
+            rgba = Image.open(f).convert("RGBA")
+            covered = np.asarray(rgba.getchannel("A")) > 0
+            cell_v, cell_cov = to_grid(covered.astype(float), np.ones_like(covered))
+            back = Image.new("RGBA", rgba.size, (37, 58, 90, 255))  # el mar, oscuro, para que el hielo se vea
+            back.alpha_composite(rgba)
+            img = back.convert("RGB")
+            values.append(cell_v)
+            coverage.append(cell_cov)
+            web = out_frames / f"{i:03d}.jpg"
+            img.resize(WEB_SIZE, Image.LANCZOS).save(web, quality=85)
+            images.append(web.relative_to(PUBLIC).as_posix())
+            print(f"  {f.stem}: {covered.mean():.1%} del mapa con hielo")
+            continue
         img = Image.open(f).convert("RGB")
         if cats:
             # BOX promedia: aquí la intensidad del color es el dato, así que mezclar es correcto
@@ -194,6 +286,24 @@ def main() -> None:
             layers.append(cell_layers)
             cell_v = np.clip(sum(cell_layers.values()), 0.0, 1.0)
             cell_cov = np.ones(CELLS)
+        elif ramp and "mollweide" in cfg:
+            m = cfg["mollweide"]
+            src = np.asarray(img).astype(float)
+            # solo los píxeles con color (fuego) se buscan en la barra; el resto es fondo gris
+            fire = (src.max(axis=-1) - src.min(axis=-1)) >= cfg["fire_chroma"]
+            level = np.zeros(src.shape[:2])
+            pos, _ = ramp.values(src[fire][None, :, :])
+            level[fire] = 0.15 + 0.85 * np.clip(pos[0], 0.0, 1.0)  # que el fuego más tenue no valga 0
+            yi, xi = mollweide.equirect_index(src.shape[:2], m["cx"], m["cy"], m["a"], m["b"], (4096, 2048))
+            cell_v, cell_cov = to_grid(level[yi, xi], np.ones((2048, 4096), dtype=bool))
+            flat = mollweide.to_equirect(img, m["cx"], m["cy"], m["a"], m["b"], WEB_SIZE)
+            img = flat  # la imagen que ve el navegador es el mapa ya aplanado
+        elif ramp:
+            rgb = np.asarray(img.resize(WORK_SIZE, Image.NEAREST)).astype(float)
+            pos, dist = ramp.values(rgb)
+            v = np.clip(pos, 0.0, 1.0)
+            ok = np.ones_like(dist, dtype=bool) if cfg["ramp"].get("all") else dist < RAMP_TOL
+            cell_v, cell_cov = to_grid(v, ok)
         else:
             v, ok = read_frame(img, cb, cfg)
             cell_v, cell_cov = to_grid(v, ok)
@@ -205,7 +315,12 @@ def main() -> None:
         print(f"  {f.stem}: {np.mean(cell_cov > 0.03):.0%} de celdas con dato")
 
     values = np.stack(values)
+    if "normalize_p" in cfg:
+        values = np.clip(values / np.percentile(values, cfg["normalize_p"]), 0.0, 1.0)
     frame_masks = np.stack(coverage) >= 0.03
+    if cfg.get("mask_active"):
+        # celdas que nunca tienen fuego (océano, hielo) cuentan como sin dato
+        frame_masks[:] = (values > 0).any(axis=0)
     if bar:
         # cada vista tiene su propia tierra visible; el disco marca la unión de todas
         mask = frame_masks.any(axis=0)

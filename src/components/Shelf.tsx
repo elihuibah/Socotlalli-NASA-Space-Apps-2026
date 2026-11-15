@@ -17,15 +17,21 @@ interface Props {
   onDragCancel: () => void
 }
 
+/** Vinilos por fila en el estante (debe coincidir con .fundas en cabana.css). */
+const SHELF_COLS = 4
+
 /** Flechas recorren los vinilos; Enter o Espacio eligen el vinilo. */
 function roveFocus(e: KeyboardEvent<HTMLDivElement>) {
-  if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
+  if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
   const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button.funda'))
   const i = buttons.indexOf(document.activeElement as HTMLButtonElement)
   if (i < 0) return
   e.preventDefault()
   const last = buttons.length - 1
-  const n = e.key === 'Home' ? 0 : e.key === 'End' ? last : e.key === 'ArrowRight' ? (i + 1) % buttons.length : (i + last) % buttons.length
+  // Los vinilos están en filas de 4 (ver SHELF_COLS): arriba y abajo saltan de fila en la misma columna.
+  const step: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: SHELF_COLS, ArrowUp: -SHELF_COLS }
+  const n = e.key === 'Home' ? 0 : e.key === 'End' ? last : i + step[e.key]
+  if (n < 0 || n > last) return // arriba de la primera fila o abajo de la última: se queda
   buttons[n].focus()
 }
 
@@ -95,7 +101,7 @@ export function DiscInfo(props: {
     return (
       <div className="ficha">
         <p className="eyebrow">{t('Los vinilos', 'The records')}</p>
-        <h2>{t('Cuatro vinilos, cuatro partes de la Tierra', 'Four records, four parts of the Earth')}</h2>
+        <h2>{t('Ocho vinilos, ocho partes de la Tierra', 'Eight records, eight parts of the Earth')}</h2>
         <p className="ficha-como">
           {t('Haz clic en una funda para conocerla, o arrástrala directo al tocadiscos.', 'Click a sleeve to learn about it, or drag it straight to the turntable.')}
         </p>

@@ -8,7 +8,7 @@ import * as Tone from "tone";
 import { calibrate, DEFAULT_CALIBRATION, normalizedFrameChange, type Calibration } from "./calibration";
 import { EffectsChain } from "./effects";
 import { Harmony, midiToNote } from "./harmony";
-import { createPeakVoice, Instrument, presetFor, SteelDrum, type PeakVoice } from "./instruments";
+import { createAccompaniment, createPeakVoice, Instrument, presetFor, StaticNoise, type Accompaniment, type PeakVoice } from "./instruments";
 import { LEGEND, type LegendContext } from "./legend";
 import { mapCell } from "./mapping";
 import { RegionMode } from "./modes/region";
@@ -40,7 +40,8 @@ export class AudioEngine implements AudioEngineApi {
   private instrument: Instrument | null = null;
   private peakVoices: PeakVoice[] = [];
   private peakNext = 0;
-  private accompaniment: SteelDrum | null = null;
+  private ambience: StaticNoise | null = null;
+  private accompaniment: Accompaniment[] = [];
   private eventId: number | null = null;
   private lastFrame = -1;
   private playing = false;
@@ -85,6 +86,7 @@ export class AudioEngine implements AudioEngineApi {
       const lead = Tone.Time(0.05).toTicks();
       this.scheduleNext(Math.ceil(transport.ticks + lead));
     }
+    this.ambience?.start();
     transport.start();
     this.playing = true;
   }
@@ -98,6 +100,7 @@ export class AudioEngine implements AudioEngineApi {
       this.eventId = null;
     }
     this.instrument?.releaseAll();
+    this.ambience?.stop();
     this.playing = false;
   }
 
@@ -174,8 +177,10 @@ export class AudioEngine implements AudioEngineApi {
     this.pause();
     this.instrument?.dispose();
     this.peakVoices.forEach((v) => v.dispose());
-    this.accompaniment?.dispose();
-    this.accompaniment = null;
+    this.accompaniment.forEach((a) => a.dispose());
+    this.accompaniment = [];
+    this.ambience?.dispose();
+    this.ambience = null;
     this.effects?.dispose();
     this.peakVoices = [];
     this.instrument = null;
@@ -194,9 +199,13 @@ export class AudioEngine implements AudioEngineApi {
     this.peakVoices.forEach((v) => v.dispose());
     this.peakVoices = (preset.peak ?? []).map((name) => createPeakVoice(name, Tone.getDestination()));
     this.peakNext = 0;
-    this.accompaniment?.dispose();
-    this.accompaniment = preset.accompany === "steeldrum" ? new SteelDrum(Tone.getDestination()) : null;
-    this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
+    this.ambience?.dispose();
+    this.ambience = preset.ambience === "static" ? new StaticNoise(Tone.getDestination(), preset.ambienceLevel ?? 1, preset.ambienceLevels) : null;
+    this.accompaniment.forEach((a) => a.dispose());
+    this.accompaniment = (preset.accompany ?? []).map((name) => createAccompaniment(name, Tone.getDestination(), preset.rootPitch ?? 0));
+    // Tónica de la octava base (Do salvo que el disco diga otra) y su escala
+    this.harmony.setRoot(12 * (preset.baseOctave + 1) + (preset.rootPitch ?? 0));
+    this.harmony.setScale(preset.scale ?? "majorPentatonic");
     // Con grabaciones: salida directa, sin distorsión, filtro, paneo ni reverb.
     const destination = preset.samples ? Tone.getDestination() : this.effects.input;
     this.instrument = new Instrument(preset, destination);
@@ -243,12 +252,15 @@ export class AudioEngine implements AudioEngineApi {
     const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
       useLatLon: this.mode === "scan",
     });
+    this.ambience?.react(params.tension, time);
     if (this.instrument.isRaw) {
       // Tus grabaciones tal cual: la celda decide cuál suena.
       const picks = this.instrument.pick(sample.value, params.tension);
-      this.instrument.playRecordings(picks, time, params.velocity);
-      // El steel drum dobla las mismas notas, así siempre queda en armonía con las grabaciones.
-      for (const note of picks) this.accompaniment?.note(note, params.subdivision, time, params.velocity * 0.6);
+      this.instrument.playRecordings(picks, time, params.velocity, params.tension);
+      // La voz de acompañamiento dobla las mismas notas, así siempre queda en armonía con las grabaciones.
+      for (const voice of this.accompaniment) {
+        for (const note of picks) voice.note(note, params.subdivision, time, Math.max(0.6, params.velocity));
+      }
     } else {
       const chord = this.harmony.chord(params.midi, params.tension);
       // Nivel 3: distorsión solo en tensión máxima y solo en los timbres que la piden.

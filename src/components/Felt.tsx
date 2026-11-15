@@ -4,10 +4,18 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DiscId } from '../data/discs'
 import { useT } from '../i18n'
+import discoFire from '../assets/fieltro/disco-fire.webp'
+import discoGiss from '../assets/fieltro/disco-giss.webp'
+import discoRain from '../assets/fieltro/disco-rain.webp'
+import discoSeaIce from '../assets/fieltro/disco-seaice.webp'
 import discoCo2 from '../assets/fieltro/disco-co2.webp'
 import discoIce from '../assets/fieltro/disco-ice.webp'
 import discoSst from '../assets/fieltro/disco-sst.webp'
 import discoVeg from '../assets/fieltro/disco-veg.webp'
+import fundaFire from '../assets/fieltro/funda-fire.webp'
+import fundaGiss from '../assets/fieltro/funda-giss.webp'
+import fundaRain from '../assets/fieltro/funda-rain.webp'
+import fundaSeaIce from '../assets/fieltro/funda-seaice.webp'
 import fundaCo2 from '../assets/fieltro/funda-co2.webp'
 import fundaIce from '../assets/fieltro/funda-ice.webp'
 import fundaSst from '../assets/fieltro/funda-sst.webp'
@@ -21,8 +29,9 @@ import ttCaja from '../assets/fieltro/tt-caja.webp'
 import ventana from '../assets/fieltro/ventana.webp'
 
 // Aerosoles usa por ahora el arte de hielo y bosques el de vegetación (ver `art` en data/discs.ts).
-const FUNDAS: Record<DiscId, string> = { sst: fundaSst, aerosols: fundaIce, forest: fundaVeg, co2: fundaCo2 }
-const DISCOS: Record<DiscId, string> = { sst: discoSst, aerosols: discoIce, forest: discoVeg, co2: discoCo2 }
+// Hielo marino, lluvia, incendios y temperatura global son esas mismas piezas con el tono girado (provisional).
+const FUNDAS: Record<DiscId, string> = { sst: fundaSst, aerosols: fundaIce, forest: fundaVeg, co2: fundaCo2, ice: fundaSeaIce, rain: fundaRain, fire: fundaFire, giss: fundaGiss }
+const DISCOS: Record<DiscId, string> = { sst: discoSst, aerosols: discoIce, forest: discoVeg, co2: discoCo2, ice: discoSeaIce, rain: discoRain, fire: discoFire, giss: discoGiss }
 
 // Todas son decorativas: el nombre accesible lo da el botón o la región que las contiene.
 const img = { alt: '', draggable: false, decoding: 'async' } as const

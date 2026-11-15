@@ -1,11 +1,11 @@
-// Los cuatro vinilos de la repisa.
+// Los ocho vinilos de la repisa: cuatro arriba y, debajo, cuatro más.
 // El id de cada vinilo es el de su disc.json en public/discs/ (lo escribe pipeline/).
 // `frames` arranca con datos de EJEMPLO; App los reemplaza con los del disc.json al cargarlo
 // (ver audioFrames en realData.ts).
 
 import type { Lang } from '../i18n'
 
-export type DiscId = 'sst' | 'aerosols' | 'forest' | 'co2'
+export type DiscId = 'sst' | 'aerosols' | 'forest' | 'co2' | 'ice' | 'rain' | 'fire' | 'giss'
 
 /** Arte de fieltro de cada vinilo (assets/fieltro/funda-*.webp y disco-*.webp). */
 export type FeltArt = 'sst' | 'ice' | 'veg' | 'co2'
@@ -175,6 +175,114 @@ export const DISCS: Disc[] = [
       howItSounds:
         'With more carbon dioxide, the sound gets heavier and more recordings pile up at once, like breathing that takes effort.',
       listen: 'My air. If the sound gets dense and heavy, there is more CO₂.',
+    },
+  },
+  {
+    id: 'ice',
+    art: 'ice',
+    opus: 5,
+    title: 'Cristal',
+    variable: 'Hielo marino en los polos',
+    about: 'el hielo que se forma y se rompe en mis polos',
+    instrument: 'Campanitas, waterphone y handpan, claros y fríos',
+    wave: 'sine',
+    baseMidi: 72,
+    color: '#A9D6F0',
+    ink: 'oscura',
+    howItSounds:
+      'Entre más hielo cubre el mar, más notas claras y despacio, con campanitas que tintinean encima. Cuando el hielo se aleja de lo normal del año, entran el waterphone y el handpan y la armonía se tensa.',
+    listen: 'Mis polos. Notas frías y espaciadas: donde hay hielo, hay sonido.',
+    frames: mockFrames(83, 0.5),
+    real: false,
+    en: {
+      title: 'Crystal',
+      variable: 'Sea ice at the poles',
+      about: 'the ice that forms and breaks at my poles',
+      instrument: 'Little bells, waterphone and handpan, clear and cold',
+      howItSounds:
+        'The more ice covers the sea, the more clear, slow notes you hear, with little bells chiming on top. When the ice drifts away from the normal of the year, the waterphone and handpan come in and the harmony gets tense.',
+      listen: 'My poles. Cold, spaced-out notes: where there is ice, there is sound.',
+    },
+  },
+  {
+    id: 'rain',
+    art: 'sst',
+    opus: 6,
+    title: 'Aguacero',
+    variable: 'Lluvia en el planeta, mes a mes',
+    about: 'dónde y cuánto llueve en mis cielos',
+    instrument: 'Gotas de pizzicato, handpan y waterphone',
+    wave: 'triangle',
+    baseMidi: 69,
+    color: '#16B7C9',
+    ink: 'clara',
+    howItSounds:
+      'Cada gota es una nota corta de cuerda pulsada. Donde llueve más, suenan más agudas y se juntan; en los chubascos más fuertes entran el handpan y el waterphone.',
+    listen: 'Mis cielos. Gotas ligeras: si se juntan, está lloviendo fuerte.',
+    frames: mockFrames(97, 0.5),
+    real: false,
+    en: {
+      title: 'Downpour',
+      variable: 'Rain on the planet, month by month',
+      about: 'where and how much it rains in my skies',
+      instrument: 'Pizzicato drops, handpan and waterphone',
+      howItSounds:
+        'Each drop is a short plucked-string note. Where it rains more, the notes are higher and bunch together; in the heaviest downpours the handpan and waterphone join in.',
+      listen: 'My skies. Light drops: if they bunch together, it is raining hard.',
+    },
+  },
+  {
+    id: 'fire',
+    art: 'co2',
+    opus: 7,
+    title: 'Brasas',
+    variable: 'Incendios activos, mes a mes de 2008',
+    about: 'los incendios que prenden y se apagan en mis tierras',
+    instrument: 'Tambor y guitarras, con estática que sube y baja',
+    wave: 'sawtooth',
+    baseMidi: 60,
+    color: '#F0642A',
+    ink: 'clara',
+    howItSounds:
+      'Donde hay más fuego, suenan más grabaciones a la vez, con un tambor que marca cada paso. La estática casi no se oye en los momentos tranquilos y sube en los más tensos, junto con la guitarra de estrés.',
+    listen: 'Mis tierras. Un tambor de brasas: si sube la estática, el fuego se aviva.',
+    frames: mockFrames(113, 0.7),
+    real: false,
+    en: {
+      title: 'Embers',
+      variable: 'Active fires, month by month in 2008',
+      about: 'the fires that start and die out across my lands',
+      instrument: 'Drum and guitars, with static that rises and falls',
+      howItSounds:
+        'Where there is more fire, more recordings play at once, with a drum marking every step. The static is barely there in calm moments and rises in the tensest ones, along with the stress guitar.',
+      listen: 'My lands. A drum of embers: if the static rises, the fire is flaring up.',
+    },
+  },
+  {
+    id: 'giss',
+    art: 'ice',
+    opus: 8,
+    title: 'Siglo de calor',
+    variable: 'Temperatura global, de 1885 a 2021',
+    about: 'cuánto me he calentado desde 1885',
+    instrument: 'Estática y waterphone, graves y tensos',
+    wave: 'square',
+    baseMidi: 50,
+    color: '#D9421C',
+    ink: 'clara',
+    howItSounds:
+      'Empieza tranquilo y se va tensando con los años. Entre más me caliento respecto a 1951 a 1980, más estática se oye; en los años más cálidos entra el waterphone.',
+    listen: 'Mi aire, año tras año. Si la tensión sube, me estoy calentando.',
+    frames: mockFrames(131, 1),
+    real: false,
+    en: {
+      title: 'A Century of Heat',
+      variable: 'Global temperature, 1885 to 2021',
+      about: 'how much I have warmed since 1885',
+      instrument: 'Static and waterphone, low and tense',
+      howItSounds:
+        'It starts calm and gets tenser over the years. The more I warm compared with 1951 to 1980, the more static you hear; in the warmest years the waterphone comes in.',
+      listen: 'My air, year after year. If the tension rises, I am warming up.',
     },
   },
 ]

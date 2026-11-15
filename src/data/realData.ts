@@ -65,11 +65,17 @@ export const hasData = (d: DiscData, frame: number, i: number) => (d.frames[fram
 /** Valor de 0 a 1 llevado a las unidades reales del disco. */
 export const toReal = (d: DiscData, v: number) => d.range[0] + v * (d.range[1] - d.range[0])
 
-export function formatValue(d: DiscData, v: number) {
-  if (!d.units) return `${Math.round(v * 100)} %` // aerosoles: intensidad de 0 a 1
+/** Un valor en unidades reales, partido en número y unidad ("12.3" y "mm/día"), para poder darles tamaños distintos. */
+export function formatValueParts(d: DiscData, v: number): { num: string; unit: string } {
+  if (!d.units) return { num: `${Math.round(v * 100)}`, unit: '%' } // aerosoles e incendios: intensidad de 0 a 1
   const real = toReal(d, v)
-  const digits = d.units === '°C' ? 1 : 0
-  return `${real.toFixed(digits)}${d.units === '%' ? ' %' : ` ${d.units}`}`
+  const digits = d.units === '°C' || d.units === 'mm/día' ? 1 : 0
+  return { num: real.toFixed(digits), unit: d.units }
+}
+
+export function formatValue(d: DiscData, v: number) {
+  const { num, unit } = formatValueParts(d, v)
+  return `${num} ${unit}`
 }
 
 /** Centro de la celda en un mapa equirectangular global. */
@@ -162,6 +168,15 @@ const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July
 
 /** '2007-08' -> 'Agosto de 2007';  '2020-01-15' -> '15 de enero de 2020'. En inglés: 'August 2007', 'January 15, 2020'. */
 export function dateLabel(date: string, lang: Lang = 'es') {
+  if (/^m\d\d$/.test(date)) {
+    // mes de un promedio de varios años: m01 .. m12
+    const i = Number(date.slice(1)) - 1
+    return lang === 'en' ? `${MONTHS_EN[i]}, multi-year average` : `${capitalize(MONTHS[i])}, promedio de varios años`
+  }
+  if (/^\d{4}$/.test(date)) {
+    // promedio móvil de cinco años que termina en este año
+    return lang === 'en' ? `Years ${Number(date) - 4} to ${date}` : `Años ${Number(date) - 4} a ${date}`
+  }
   const [y, m, day] = date.split('-')
   if (lang === 'en') {
     const monthEn = MONTHS_EN[Number(m) - 1] ?? m
@@ -207,6 +222,30 @@ export const shortMeasure = (d: DiscData, lang: Lang = 'es') =>
 // ---- Textos de los disc.json en inglés ----------------------------------------
 // Los disc.json (pipeline/) vienen en español; aquí está su versión en inglés.
 const DATA_EN: Record<DiscId, { title: string; measure: string; credit: string }> = {
+  ice: {
+    title: 'Sea ice',
+    measure: 'Share of the cell covered by sea ice (concentration above 15 %), one day of each month of 2007',
+    credit:
+      'NASA Scientific Visualization Studio, Sea Ice over the Arctic and Antarctic designed for Science On a Sphere (SOS) and WMS (data: AMSR-E instrument on the Aqua satellite, 15 % concentration or more; one day of each month of 2007). https://svs.gsfc.nasa.gov/3564',
+  },
+  rain: {
+    title: 'Rain',
+    measure: 'Average rainfall of the cell in one day, by month (average of 2001 to 2022)',
+    credit:
+      'NASA Scientific Visualization Studio, IMERG Monthly Precipitation Climatology (2001 - 2022) (data: NASA IMERG, GPM mission). https://svs.gsfc.nasa.gov/5241',
+  },
+  fire: {
+    title: 'Fires',
+    measure: 'Fire activity in the cell (0 to 1): active fire points the satellite detected during the month and how intense they are, relative to the most active month of the record',
+    credit:
+      'NASA Scientific Visualization Studio, Monthly Active Fires (data: MODIS instrument on the Terra satellite, NASA/GSFC and University of Maryland; month by month, 2008). https://svs.gsfc.nasa.gov/30378',
+  },
+  giss: {
+    title: 'Global temperature',
+    measure: 'How much warmer or colder than the 1951 to 1980 average the air near the surface is, five-year moving average',
+    credit:
+      'NASA Scientific Visualization Studio, Global Temperature Anomalies from 1880 to 2021 (data: NASA GISS, GISTEMP). https://svs.gsfc.nasa.gov/4964',
+  },
   sst: {
     title: 'Sea temperature',
     measure: 'Sea surface temperature, cell average',

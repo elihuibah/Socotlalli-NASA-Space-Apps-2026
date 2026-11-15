@@ -25,8 +25,8 @@ const INTRO: Text[] = [
   tx('Hola, soy Tlalli, «tierra» en náhuatl. Bienvenido a mi cabaña en órbita.', 'Hi, I’m Tlalli, “earth” in Nahuatl. Welcome to my cabin in orbit.'),
   tx('Los satélites de la NASA me observan. Con lo que ven, hice música.', 'NASA satellites watch over me. With what they see, I made music.'),
   tx(
-    'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire y lo que flota en él. Haz clic en uno.',
-    'Each record holds a part of me: my sea, my forests, my air and what floats in it. Click one.',
+    'Cada vinilo guarda una parte de mí: mi mar, mis bosques, mi aire, mi hielo, mi lluvia, mi fuego y mi calor. Haz clic en uno.',
+    'Each record holds a part of me: my sea, my forests, my air, my ice, my rain, my fire and my heat. Click one.',
   ),
   tx('Luego arrástralo al tocadiscos, o pulsa el botón de reproducir.', 'Then drag it to the turntable, or press the play button.'),
   tx(

@@ -12,6 +12,7 @@ import {
   dataCredit,
   dataTitle,
   formatValue,
+  formatValueParts,
   frameLabel,
   hasData,
   idx,
@@ -41,8 +42,21 @@ const START_CELL = idx(COLS / 2, ROWS / 2 - 3)
 /** Por qué una celda no tiene dato, según el disco. */
 function noDataReason(d: DiscData, lang: Lang) {
   if (d.id === 'sst') return pickLang(lang, 'Es tierra: este disco solo mide la temperatura del mar.', 'This is land: this record only measures sea temperature.')
+  if (d.id === 'ice') return pickLang(lang, 'Aquí no hay hielo marino en ningún mes: este disco solo mide los polos.', 'There is no sea ice here in any month: this record only measures the poles.')
+  if (d.id === 'fire') return pickLang(lang, 'Aquí no hubo incendios en ningún mes de 2008.', 'There were no fires here in any month of 2008.')
   if (isGlobe(d)) return pickLang(lang, 'Aquí se ve océano, hielo o el borde del globo: no hay bosque que medir.', 'This shows ocean, ice or the edge of the globe: there is no forest to measure.')
   return pickLang(lang, 'En esta celda la imagen no trae dato.', 'The image has no data in this cell.')
+}
+
+/** Un valor con su unidad más chica ("12.3 mm/día"): así las unidades largas no ensanchan la cifra ni se encima con la de al lado. */
+function Val({ d, v }: { d: DiscData; v: number }) {
+  const { num, unit } = formatValueParts(d, v)
+  return (
+    <span className="piz-cifra">
+      {num}
+      {unit && <small className="piz-unidad"> {unit}</small>}
+    </span>
+  )
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -384,13 +398,15 @@ function MapSummaryView(props: { d: DiscData; frame: number; seaMask?: number[];
       {summary ? (
         <dl className="piz-cifras">
           <div>
-            <dd>{formatValue(d, summary.mean)}</dd>
+            <dd>
+              <Val d={d} v={summary.mean} />
+            </dd>
             <dt>{t('Promedio', 'Average')}</dt>
           </div>
           <div>
             <dd>
               <button type="button" className="piz-ir" onClick={() => onPick(summary.maxIndex)} title={t(`Ir a ${where(summary.maxIndex)}`, `Go to ${where(summary.maxIndex)}`)}>
-                {formatValue(d, summary.max)}
+                <Val d={d} v={summary.max} />
               </button>
             </dd>
             <dt>{t('Lo más alto', 'Highest')}</dt>
@@ -398,7 +414,7 @@ function MapSummaryView(props: { d: DiscData; frame: number; seaMask?: number[];
           <div>
             <dd>
               <button type="button" className="piz-ir" onClick={() => onPick(summary.minIndex)} title={t(`Ir a ${where(summary.minIndex)}`, `Go to ${where(summary.minIndex)}`)}>
-                {formatValue(d, summary.min)}
+                <Val d={d} v={summary.min} />
               </button>
             </dd>
             <dt>{t('Lo más bajo', 'Lowest')}</dt>
@@ -429,7 +445,7 @@ function CellStats({ d, frame, cell, place }: { d: DiscData; frame: number; cell
       ) : (
         <>
           <p className="piz-valor">
-            {formatValue(d, f.values[cell])}
+            <Val d={d} v={f.values[cell]} />
             <span className="piz-valor-que">{d.units ? t('en esta celda', 'in this cell') : t('de intensidad', 'intensity')}</span>
           </p>
           <div className="piz-anomalia">

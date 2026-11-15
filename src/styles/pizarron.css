@@ -460,6 +460,8 @@
   font-weight: 800;
   line-height: 1;
   color: var(--amarillo);
+}
+.piz-valor .piz-cifra {
   white-space: nowrap;
 }
 .piz-sin-dato {
@@ -559,7 +561,8 @@
    Lo más alto y lo más bajo son botones: llevan a ese lugar del mapa. */
 .piz-cifras {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Las columnas no bajan de 6.5em: si no caben tres, las cifras pasan a otra fila y nunca se encimen */
+  grid-template-columns: repeat(auto-fit, minmax(6.5em, 1fr));
   gap: 10px;
   margin: 4px 0 0;
 }
@@ -576,10 +579,20 @@
 }
 .piz-cifras dd {
   margin: 0;
+  max-width: 100%;
+  overflow: hidden; /* por si una cifra aun así no cabe: se recorta en vez de montarse sobre la vecina */
+  text-overflow: ellipsis;
   font-size: clamp(1.05rem, 1.5vw, 1.3rem);
   font-weight: 800;
   line-height: 1.2;
   white-space: nowrap;
+}
+/* La unidad va más chica que el número (mm/día, °C, %) */
+.piz-unidad {
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--arena);
 }
 .piz-ir {
   padding: 0;
