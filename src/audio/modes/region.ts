@@ -46,4 +46,14 @@ export class RegionMode implements ListeningMode {
     this.frame = 0;
     this.step = 0;
   }
+
+  seek(frameIndex: number): void {
+    const n = this.disc.frames.length;
+    this.frame = ((frameIndex % n) + n) % n;
+    this.step = 0;
+  }
+
+  get region(): { col: number; row: number } {
+    return { col: this.col, row: this.row };
+  }
 }

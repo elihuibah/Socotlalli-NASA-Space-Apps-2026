@@ -56,6 +56,9 @@ export function Pizarron(props: {
   active: boolean
   onBack: () => void
   onSay: (text: string) => void
+  /** Celda que suena en el modo "lugar en el tiempo" (null = barrido). */
+  listenCell?: number | null
+  onListen?: (cell: number | null) => void
 }) {
   const { disc, data, error, playing, playingFrame, active, onBack, onSay } = props
   const d = data[disc.id]
@@ -182,6 +185,21 @@ export function Pizarron(props: {
                   </div>
                 ) : (
                   <CellStats d={d} frame={frame} cell={cell} place={placeOf(d, frame, cell, data.sst?.mask)} />
+                )}
+                {/* Modo "lugar en el tiempo": solo tiene sentido si el disco trae varias fechas del mismo mapa. */}
+                {props.onListen && !isGlobe(d) && d.frames.length > 1 && (
+                  props.listenCell !== null && props.listenCell !== undefined ? (
+                    <button type="button" className="btn-texto piz-escuchar" onClick={() => props.onListen!(null)}>
+                      Volver al barrido de oeste a este
+                    </button>
+                  ) : (
+                    cell !== null &&
+                    hasData(d, frame, cell) && (
+                      <button type="button" className="btn-texto piz-escuchar" onClick={() => props.onListen!(cell)}>
+                        Escuchar solo este lugar a lo largo del tiempo
+                      </button>
+                    )
+                  )
                 )}
                 <MapSummaryView d={d} frame={frame} seaMask={data.sst?.mask} onPick={pick} />
               </aside>

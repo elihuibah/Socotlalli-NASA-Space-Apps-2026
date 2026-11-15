@@ -17,6 +17,8 @@ export class EffectsChain {
   readonly panner: Tone.Panner;
   readonly reverb: Tone.Reverb;
   readonly output: Tone.Volume;
+  /** Evita que los acordes de 4-5 notas saturen la bocina. */
+  readonly limiter: Tone.Limiter;
 
   constructor() {
     this.distortion = new Tone.Distortion({ distortion: 0, wet: 0 });
@@ -24,7 +26,8 @@ export class EffectsChain {
     this.panner = new Tone.Panner(0);
     this.reverb = new Tone.Reverb({ decay: 3, wet: 0.25 });
     this.output = new Tone.Volume(-6);
-    this.distortion.chain(this.filter, this.panner, this.reverb, this.output, Tone.getDestination());
+    this.limiter = new Tone.Limiter(-1);
+    this.distortion.chain(this.filter, this.panner, this.reverb, this.output, this.limiter, Tone.getDestination());
   }
 
   /** Nodo al que se conectan los instrumentos. */
@@ -41,10 +44,11 @@ export class EffectsChain {
     this.panner.pan.rampTo(pan, 0.05, time);
   }
 
-  /** |anomalía| 0..1 → cantidad de distorsión. Desactivado por defecto (nivel 3). */
-  setDistortion(amount: number): void {
-    this.distortion.distortion = amount;
-    this.distortion.wet.value = amount > 0 ? 1 : 0;
+  /** Cantidad de distorsión 0..1 (0 = apagada). La decide el motor según la anomalía. */
+  setDistortion(amount: number, time?: number): void {
+    const a = Math.max(0, Math.min(1, amount));
+    if (a > 0) this.distortion.distortion = a;
+    this.distortion.wet.setValueAtTime(a > 0 ? 1 : 0, time ?? Tone.now());
   }
 
   setVolume(db: number): void {
@@ -57,5 +61,6 @@ export class EffectsChain {
     this.panner.dispose();
     this.reverb.dispose();
     this.output.dispose();
+    this.limiter.dispose();
   }
 }

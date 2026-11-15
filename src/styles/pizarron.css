@@ -415,6 +415,11 @@
   min-width: 0;
   font-size: 0.9375rem;
 }
+/* Botón del modo "lugar en el tiempo" (audio) */
+.piz-escuchar {
+  align-self: flex-start;
+  text-align: left;
+}
 .piz-tarjeta {
   display: flex;
   flex-direction: column;

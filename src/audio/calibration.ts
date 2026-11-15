@@ -11,6 +11,7 @@
  * así que la misma imagen siempre suena igual.
  */
 import { hasData, rawNeighborVariation } from "./mapping";
+import { ScanMode } from "./modes/scan";
 import { rawFrameChange } from "./rhythm";
 import type { Disc, Subdivision, TensionLevel } from "./types";
 
@@ -19,6 +20,13 @@ export interface Calibration {
   tensionCuts: [number, number, number];
   /** Cortes de variación entre vecinos para 8n, 8t y 16n. */
   densityCuts: [number, number, number];
+  /**
+   * Los mismos cortes medidos solo en las celdas que toca el barrido. El barrido toca
+   * la celda más alejada de lo normal de cada columna; con los cortes de todas las
+   * celdas casi todo sonaba tenso y no se distinguía un fotograma normal de uno anómalo.
+   */
+  scanTensionCuts: [number, number, number];
+  scanDensityCuts: [number, number, number];
   /** Cambio medio entre fotogramas que equivale a 120 BPM. */
   maxFrameChange: number;
 }
@@ -44,6 +52,8 @@ const FRAME_CHANGE_FLOOR = 0.005;
 export const DEFAULT_CALIBRATION: Calibration = {
   tensionCuts: [0.15, 0.35, 0.6],
   densityCuts: [0.0625, 0.125, 0.1875],
+  scanTensionCuts: [0.15, 0.35, 0.6],
+  scanDensityCuts: [0.0625, 0.125, 0.1875],
   maxFrameChange: 0.1,
 };
 
@@ -52,16 +62,30 @@ export function calibrate(disc: Disc): Calibration {
   const variations: number[] = [];
   const { cols, rows } = disc.grid;
 
-  for (const frame of disc.frames) {
+  disc.frames.forEach((frame, k) => {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        if (!hasData(disc, col, row)) continue;
+        if (!hasData(disc, col, row, k)) continue;
         anomalies.push(Math.abs(frame.anomaly[row * cols + col]));
-        variations.push(rawNeighborVariation(frame.values, disc, col, row));
+        variations.push(rawNeighborVariation(disc, k, col, row));
       }
     }
-  }
+  });
   if (anomalies.length === 0) return DEFAULT_CALIBRATION;
+
+  // Lo que suena en el barrido: una celda por columna y fotograma, con la misma regla que ScanMode.
+  const scanAnomalies: number[] = [];
+  const scanVariations: number[] = [];
+  const scan = new ScanMode(disc);
+  for (let k = 0; k < disc.frames.length; k++) {
+    scan.seek(k);
+    for (let col = 0; col < cols; col++) {
+      const s = scan.next();
+      if (!s) continue;
+      scanAnomalies.push(Math.abs(s.anomaly));
+      scanVariations.push(s.neighborVariation);
+    }
+  }
 
   let maxChange = 0;
   for (let i = 1; i < disc.frames.length; i++) {
@@ -71,20 +95,22 @@ export function calibrate(disc: Disc): Calibration {
   return {
     tensionCuts: cuts(anomalies, TENSION_PERCENTILES, TENSION_FLOOR),
     densityCuts: cuts(variations, DENSITY_PERCENTILES, DENSITY_FLOOR),
+    scanTensionCuts: cuts(scanAnomalies, TENSION_PERCENTILES, TENSION_FLOOR),
+    scanDensityCuts: cuts(scanVariations, DENSITY_PERCENTILES, DENSITY_FLOOR),
     maxFrameChange: disc.frames.length > 1 ? Math.max(maxChange, FRAME_CHANGE_FLOOR) : DEFAULT_CALIBRATION.maxFrameChange,
   };
 }
 
 /** |anomalía| → nivel de tensión según los cortes del disco. */
-export function tensionFor(anomaly: number, cal: Calibration): TensionLevel {
-  return levelFor(Math.abs(anomaly), cal.tensionCuts) as TensionLevel;
+export function tensionFor(anomaly: number, cal: Calibration, scan = false): TensionLevel {
+  return levelFor(Math.abs(anomaly), scan ? cal.scanTensionCuts : cal.tensionCuts) as TensionLevel;
 }
 
 const SUBDIVISIONS: readonly Subdivision[] = ["4n", "8n", "8t", "16n"];
 
 /** Variación entre vecinos → duración de nota según los cortes del disco. */
-export function subdivisionFor(variation: number, cal: Calibration): Subdivision {
-  return SUBDIVISIONS[levelFor(variation, cal.densityCuts)];
+export function subdivisionFor(variation: number, cal: Calibration, scan = false): Subdivision {
+  return SUBDIVISIONS[levelFor(variation, scan ? cal.scanDensityCuts : cal.densityCuts)];
 }
 
 /** Cambio entre fotogramas → 0..1 relativo al mayor cambio del disco. */
@@ -111,6 +137,7 @@ function cuts(
   // cayendo en el nivel 0, que es lo que deben sonar.
   const nonZero = data.filter((x) => x > 0);
   const sorted = (nonZero.length ? nonZero : data).sort((a, b) => a - b);
+  if (sorted.length === 0) return [floor[0], floor[1], floor[2]];
   const out = percentiles.map((p, i) => Math.max(quantile(sorted, p), floor[i]));
   // Asegura cortes estrictamente crecientes.
   for (let i = 1; i < out.length; i++) out[i] = Math.max(out[i], out[i - 1] + 1e-6);

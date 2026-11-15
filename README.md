@@ -34,7 +34,14 @@ TODO: which visualizations were used, grid resolution, what the project does not
 npm install
 npm run dev
 ```
-TODO: add the command to run the Python pipeline.
+
+Rebuild a disc from the NASA images (Python 3 with `pip install -r pipeline/requirements.txt`), then check that the audio engine can play it:
+
+```bash
+python pipeline/download.py sst      # once: downloads the original frames
+python pipeline/build_disc.py sst    # writes public/discs/sst.json
+npm run discs:check                  # validates every disc.json and simulates the audio engine on it
+```
 
 ## Credits and licenses
 | Item | Author | License | Link |
