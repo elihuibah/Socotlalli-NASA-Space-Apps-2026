@@ -31,10 +31,10 @@ Tlalli ("earth" in Nahuatl), the character on screen, guides you and describes a
 | 2 | Bruma | Aerosols | Electric guitar records with chorus, delay & reverbr |
 | 3 | Pastoral | Forest height | Electric guitar records with chorus, delay & reverb |
 | 4 | Respiración | Carbon dioxide | Electric guitar records with chorus, delay & reverb |
-| 5 | Cristal| --- | Electric guitar records with chorus, delay & reverb |
-| 6 | Aguacero | --- | Electric guitar records with chorus, delay & reverbr |
-| 7 | Brasas | --- | Electric guitar records with chorus, delay & reverb |
-| 8 | Siglo de calor | --- | Electric guitar records with chorus, delay & reverb |
+| 5 | Cristal| Snow in the sea | Electric guitar records with chorus, delay & reverb |
+| 6 | Aguacero | Raining | Electric guitar records with chorus, delay & reverbr |
+| 7 | Brasas | Heat & fire | Electric guitar records with chorus, delay & reverb |
+| 8 | Siglo de calor | Only heat | Electric guitar records with chorus, delay & reverb |
 
 
 ## How it works
