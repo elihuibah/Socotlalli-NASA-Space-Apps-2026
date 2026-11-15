@@ -13,6 +13,7 @@ import fundaSst from '../assets/fieltro/funda-sst.webp'
 import fundaVeg from '../assets/fieltro/funda-veg.webp'
 import tlalliCuerpo from '../assets/fieltro/tlalli-cuerpo.webp'
 import tlalliOjos from '../assets/fieltro/tlalli-ojos.webp'
+import tlalliPupilas from '../assets/fieltro/tlalli-pupilas.webp'
 import tlalliRisa from '../assets/fieltro/tlalli-risa.webp'
 import ttBrazo from '../assets/fieltro/tt-brazo.webp'
 import ttCaja from '../assets/fieltro/tt-caja.webp'
@@ -35,11 +36,26 @@ export const TurntableArmImg = ({ down }: { down: boolean }) => (
   <img {...img} className={`tt-brazo${down ? ' is-down' : ''}`} src={ttBrazo} />
 )
 
+/** Tlalli sin interacción, para el telón de entrada: mismas capas y parpadeo. */
+export const TlalliTelonImg = () => (
+  <div className="tlalli-fig">
+    <span className="tlalli-capa">
+      <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
+      <span className="tlalli-mirada">
+        <span className="tlalli-parpado">
+          <img {...img} className="tlalli-ojos" src={tlalliOjos} />
+          <img {...img} className="tlalli-pupilas" src={tlalliPupilas} />
+        </span>
+      </span>
+    </span>
+  </div>
+)
+
 type Walk = 'derecha' | 'izquierda' | null
 
 /**
- * Tlalli: cuerpo y ojos en capas separadas para que pueda parpadear y mirar.
- * - Sus ojos siguen al cursor por momentos y vuelven al centro si el cursor se queda quieto.
+ * Tlalli: cuerpo, ojos y pupilas en capas separadas para que pueda parpadear y mirar.
+ * - Sus pupilas siguen al cursor por momentos y vuelven al centro si el cursor se queda quieto.
  * - Un clic la hace rebotar; tres clics seguidos la hacen reír.
  * - Al caminar le salen pies; al llegar (`landing`) los guarda con una animación.
  */
@@ -128,8 +144,12 @@ export function TlalliImg(props: {
       <span className="tlalli-pie is-der" aria-hidden="true" />
       <span className="tlalli-capa">
         <img {...img} className="tlalli-cuerpo" src={tlalliCuerpo} />
+        {/* Ojos (amarillo) y pupilas en capas aparte: al mirar se mueven las pupilas */}
         <span className="tlalli-mirada">
-          <img {...img} className="tlalli-ojos" src={tlalliOjos} />
+          <span className="tlalli-parpado">
+            <img {...img} className="tlalli-ojos" src={tlalliOjos} />
+            <img {...img} className="tlalli-pupilas" src={tlalliPupilas} />
+          </span>
           <img {...img} className="tlalli-risa" src={tlalliRisa} />
         </span>
       </span>

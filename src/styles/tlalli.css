@@ -29,7 +29,8 @@
   border-radius: 50%;
 }
 .tlalli-capa,
-.tlalli-mirada {
+.tlalli-mirada,
+.tlalli-parpado {
   position: absolute;
   inset: 0;
   display: block;
@@ -45,15 +46,23 @@
 .tlalli-cuerpo {
   filter: drop-shadow(0 10px 7px rgba(20, 12, 8, 0.5));
 }
-/* La mirada: Felt.tsx pone --mira-x y --mira-y (de -1 a 1) según dónde esté el cursor */
+/* La mirada: Felt.tsx pone --mira-x y --mira-y (de -1 a 1) según dónde esté el cursor.
+   Las pupilas son las que miran: recorren el ojo casi hasta su orilla. Los ojos apenas
+   acompañan, lo justo para que no se vean pegados. */
 .tlalli-mirada {
-  transform: translate(calc(var(--mira-x, 0) * 2.8%), calc(var(--mira-y, 0) * 2.2%));
+  transform: translate(calc(var(--mira-x, 0) * 0.5%), calc(var(--mira-y, 0) * 0.4%));
   transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.tlalli-fig.is-walking .tlalli-mirada {
+.tlalli-pupilas {
+  transform: translate(calc(var(--mira-x, 0) * 2.6%), calc(var(--mira-y, 0) * 2.9%));
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.tlalli-fig.is-walking .tlalli-mirada,
+.tlalli-fig.is-walking .tlalli-pupilas {
   transform: none;
 }
-.tlalli-ojos {
+/* El párpado cierra ojos y pupilas juntos */
+.tlalli-parpado {
   transform-origin: 50% 53.75%; /* altura de los ojos dentro de la imagen */
   animation: tlalli-parpadeo 5.5s infinite;
   transition: opacity 0.12s;
@@ -75,7 +84,7 @@
 .tlalli-fig.is-risa .tlalli-capa {
   animation: tlalli-reir 0.28s ease-in-out 6;
 }
-.tlalli-fig.is-risa .tlalli-ojos {
+.tlalli-fig.is-risa .tlalli-parpado {
   opacity: 0;
 }
 .tlalli-fig.is-risa .tlalli-risa {

@@ -12,6 +12,7 @@ import { NowPlaying, Turntable } from './components/Console'
 import { DiscInfo, Shelf } from './components/Shelf'
 import { Bubbles } from './components/Tlalli'
 import { Pizarron } from './components/Pizarron'
+import { Telon } from './components/Telon'
 import type { Message } from './components/Tlalli'
 
 // ---- Lo que dice Tlalli ----------------------------------------------------
@@ -59,6 +60,7 @@ export default function App() {
   const [view, setView] = useState<View>('sala')
   const [walking, setWalking] = useState<Walk>(null)
   const [landing, setLanding] = useState(false) // Tlalli acaba de llegar y guarda sus pies
+  const [telon, setTelon] = useState<'puesto' | 'abriendo' | 'fuera'>('puesto') // cortina de entrada
   const [listenCell, setListenCell] = useState<number | null>(null) // celda del modo "lugar en el tiempo"
 
   const nextId = useRef(1)
@@ -353,8 +355,17 @@ export default function App() {
 
   const dragged = discById(drag?.id ?? null)
 
+  const openTelon = useCallback(() => setTelon('abriendo'), [])
+  const removeTelon = useCallback(() => setTelon('fuera'), [])
+
   return (
-    <div className={`cabana vista-${view}${walking ? ` is-paseando-${walking}` : ''}${drag ? ' is-dragging' : ''}`}>
+    <>
+    {telon !== 'fuera' && <Telon still={settings.reduceMotion} onOpen={openTelon} onGone={removeTelon} />}
+    {/* Mientras el telón está puesto, la cabaña no recibe foco ni la leen los lectores de pantalla */}
+    <div
+      className={`cabana vista-${view}${walking ? ` is-paseando-${walking}` : ''}${drag ? ' is-dragging' : ''}${telon !== 'fuera' ? ' con-telon' : ''}`}
+      inert={telon === 'puesto'}
+    >
       <div className="cabin" aria-hidden="true">
         <svg className="cabin-arco" viewBox="0 0 1440 900" preserveAspectRatio="none">
           <defs>
@@ -502,5 +513,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </>
   )
 }
