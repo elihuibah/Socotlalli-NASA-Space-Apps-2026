@@ -201,6 +201,7 @@ export function Pizarron(props: {
                     )
                   )
                 )}
+                <MapSummaryView d={d} frame={frame} seaMask={data.sst?.mask} onPick={pick} />
               </aside>
             </div>
           )}

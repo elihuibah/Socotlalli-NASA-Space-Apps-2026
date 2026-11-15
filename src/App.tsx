@@ -59,6 +59,7 @@ export default function App() {
   const [view, setView] = useState<View>('sala')
   const [walking, setWalking] = useState<Walk>(null)
   const [landing, setLanding] = useState(false) // Tlalli acaba de llegar y guarda sus pies
+  const [listenCell, setListenCell] = useState<number | null>(null) // celda del modo "lugar en el tiempo"
 
   const nextId = useRef(1)
   const covers = useRef(new Map<DiscId, HTMLButtonElement>())
@@ -69,6 +70,7 @@ export default function App() {
   const flyEl = useRef<HTMLDivElement | null>(null)
   const walkTimer = useRef<number | undefined>(undefined)
   const landTimer = useRef<number | undefined>(undefined)
+  const loadToken = useRef(0) // descarta cargas de un disco que ya se quitó del plato
 
   // ---- Datos reales: los disc.json que escribe pipeline/ ----------------------
   useEffect(() => {
