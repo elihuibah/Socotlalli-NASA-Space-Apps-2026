@@ -205,6 +205,8 @@ export class AudioEngine implements AudioEngineApi {
    */
   private scheduleNext(atTicks: number): void {
     const transport = Tone.getTransport();
+    // En ticks, no en segundos: los segundos se convierten con el BPM del momento, y al
+    // bajar el tempo entre fotogramas el siguiente paso quedaba en el pasado (música detenida).
     this.eventId = transport.scheduleOnce((time) => {
       let duration: Subdivision = "4n";
       try {

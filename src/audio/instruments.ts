@@ -7,6 +7,9 @@
 import * as Tone from "tone";
 import type { InstrumentPreset } from "./types";
 
+/** -20 % de amplitud (20·log10(0.8) ≈ -1.94 dB). */
+const VOLUME_TRIM_DB = -1.94;
+
 const SAMPLES = `${import.meta.env.BASE_URL}samples/`;
 
 /** ["A#2"] -> { "A#2": "As2.mp3" }  ("#" rompe las URL, el archivo usa "s"). */
@@ -46,7 +49,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     envelope: { attack: 0.004, decay: 1.1, sustain: 0.08, release: 1.2 },
     baseOctave: 4,
     samples: set("calm", LOW),
-    mix: [[0], [0, 3], [0, 3], [0, 1]],
+    mix: [[0], [0, 2], [0, 2], [0, 1, 2]],
   },
   // "Bruma": polvo y rayos, agudas y tenues. Partículas sueltas.
   aerosols: {
@@ -56,7 +59,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     baseOctave: 4,
     volume: -6,
     samples: set("stress", HIGH),
-    mix: [[0], [0, 2], [0, 2, 5], [0, 1, 2]],
+    mix: [[0], [0, 2], [0, 2], [0, 1, 2]],
   },
   // "Pastoral": viento y agua, agudas. Aire claro y ligero.
   forest: {
@@ -65,7 +68,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 0.7 },
     baseOctave: 3,
     samples: set("calm", HIGH),
-    mix: [[0], [0, 4], [0, 4], [0, 4, 7]],
+    mix: [[0], [0, 2], [0, 2], [0, 2, 4]],
   },
   // "Respiración": polvo y rayos, graves y densos. Pesado, se acumula.
   co2: {
@@ -75,7 +78,7 @@ export const PRESETS: Record<string, InstrumentPreset> = {
     baseOctave: 3,
     volume: -3,
     samples: set("stress", LOW),
-    mix: [[0, 2], [0, 2, 4], [0, 2, 4, 6], [0, 1, 2, 3]],
+    mix: [[0, 2], [0, 2, 4], [0, 2, 4], [0, 1, 2, 4]],
   },
 };
 
@@ -89,7 +92,7 @@ type Voice = Tone.PolySynth | Tone.Sampler;
 const MIX_OFFSETS: Record<number, number[]> = {
   0: [0],
   1: [0, 4],
-  2: [0, 4, 8],
+  2: [0, 2],
   3: [0, 1, 2],
 };
 
@@ -111,7 +114,10 @@ export class Instrument {
       this.layerVoices.set(name, { voice, octaveShift: layer.octaveShift });
     }
     if (preset.samples) {
+      // Las grabaciones (E, G, A#, C#) forman un acorde disminuido: sonado junto o en
+      // secuencia es áspero. Solo se usan E y G (tercera menor + octavas), más suave.
       this.recorded = Object.keys(preset.samples.urls)
+        .filter((note) => /^[EG]\d$/.test(note))
         .map((note) => ({ note, midi: Tone.Frequency(note).toMidi() }))
         .sort((a, b) => a.midi - b.midi);
     }
@@ -170,7 +176,7 @@ function createSynth(preset: InstrumentPreset, oscillator: InstrumentPreset["osc
     envelope: preset.envelope,
   } as Tone.SynthOptions);
   synth.maxPolyphony = 48;
-  synth.volume.value = preset.volume ?? 0;
+  synth.volume.value = (preset.volume ?? 0) + VOLUME_TRIM_DB;
   return synth;
 }
 
@@ -182,6 +188,6 @@ function createSampler(preset: InstrumentPreset): Tone.Sampler {
     release: preset.envelope.release,
     onerror: (e) => console.error("[sampler] ERROR", preset.id, e),
   });
-  sampler.volume.value = preset.volume ?? 0;
+  sampler.volume.value = (preset.volume ?? 0) + VOLUME_TRIM_DB;
   return sampler;
 }

@@ -37,7 +37,7 @@ function createEngine(): AudioEngine {
     if (!ctx) {
       ctx = new AudioContext()
       master = ctx.createGain()
-      master.gain.value = 0.16
+      master.gain.value = 0.128
       master.connect(ctx.destination)
     }
     return ctx
@@ -77,9 +77,9 @@ function createEngine(): AudioEngine {
     const tension = Math.abs(f.anomaly)
     const now = ctx.currentTime + 0.02
     voice(midi, now, 1.4, pan, disc.wave)
-    // Tensión: cerca de lo normal, quinta; luego séptima; lejos, segunda menor o tritono.
+    // Tensión: cerca de lo normal, quinta; luego sexta; lejos, novena. Todo consonante.
     if (Math.random() < 0.25 + tension * 0.75) {
-      const interval = tension > 0.66 ? (Math.random() < 0.5 ? 1 : 6) : tension > 0.33 ? 10 : 7
+      const interval = tension > 0.66 ? 14 : tension > 0.33 ? 9 : 7
       voice(midi + interval, now + 0.01, 1.2, pan, disc.wave, 0.3)
     }
     listeners.forEach((cb) => cb({ midi, tension, pan }))
