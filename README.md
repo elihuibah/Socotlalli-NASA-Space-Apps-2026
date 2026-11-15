@@ -9,7 +9,7 @@
 ![Screenshot of the interface](docs/screenshot.png)
 
 ## Summary
-TODO: problem, solution and who it is for, in one paragraph, no jargon.
+Socotlalli lets you hear NASA Earth data instead of only seeing it. Most Earth data tools are maps and charts, which people who are blind or have low vision cannot use. Socotlalli shrinks each NASA satellite image to a grid of 32 by 16 numbers and turns those numbers into music that the browser synthesizes live: higher values play higher notes, and the harmony gets tense when a place moves away from normal. You choose one of four "vinyl records" (sea temperature, aerosols, forest height, carbon dioxide), put it on a turntable, and listen. It was made by Socoteam for the NASA Space Apps Challenge 2026, challenge "Earth Information Jukebox".
 
 ## How to use it
 1. TODO: choose a disc
