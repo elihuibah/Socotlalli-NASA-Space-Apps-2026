@@ -92,8 +92,6 @@ export function normalizedFrameChange(change: number, cal: Calibration): number 
   return Math.max(0, Math.min(1, change / cal.maxFrameChange));
 }
 
-// ---------------------------------------------------------------------------
-
 function levelFor(x: number, cutsArr: readonly [number, number, number]): number {
   if (x < cutsArr[0]) return 0;
   if (x < cutsArr[1]) return 1;

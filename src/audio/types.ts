@@ -8,10 +8,6 @@
  * row 0 = norte (arriba), col 0 = oeste (izquierda).
  */
 
-// ---------------------------------------------------------------------------
-// Contrato 1: el disco
-// ---------------------------------------------------------------------------
-
 export interface Grid {
   cols: number;
   rows: number;
@@ -44,10 +40,6 @@ export interface Disc {
   /** 1 = celda con dato, 0 = sin dato (p. ej. tierra en SST). Opcional. */
   mask?: number[];
 }
-
-// ---------------------------------------------------------------------------
-// Contrato 2: lo que el motor expone
-// ---------------------------------------------------------------------------
 
 export type Mode = "scan" | "region";
 
@@ -83,10 +75,6 @@ export interface AudioEngineApi {
   /** Devuelve una función para cancelar la suscripción. */
   onNote(callback: NoteCallback): () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Mapeo imagen → música
-// ---------------------------------------------------------------------------
 
 /** Una celda leída del disco, lista para mapearse. */
 export interface CellSample {
@@ -145,7 +133,6 @@ export interface InstrumentPreset {
     | "fatsawtooth" | "fattriangle" | "fatsquare"
     | "fmsine" | "amsine";  
   envelope: { attack: number; decay: number; sustain: number; release: number };
-  /** Muestras de public/samples para Tone.Sampler (nivel 3). */
   samples?: { baseUrl: string; urls: Record<string, string> };
   /** Octava base del registro. */
   baseOctave: number;

@@ -1,9 +1,4 @@
-/**
- * Armonía: escalas, grados → MIDI y acordes según la tensión.
- *
- * Regla del plan: escalas y acordes fijos; los datos deciden nota y tensión.
- * Tensión 0 = tríada limpia → 1 = séptimas → 2/3 = segundas menores y tritonos.
- */
+
 import type { TensionLevel } from "./types";
 
 /** Intervalos en semitonos desde la tónica. */
@@ -16,10 +11,6 @@ export const SCALES = {
 
 export type ScaleName = keyof typeof SCALES;
 
-/**
- * Intervalos (en semitonos desde la nota) que se agregan al acorde
- * según el nivel de tensión.
- */
 export const TENSION_CHORDS: Record<TensionLevel, readonly number[]> = {
   0: [0, 4, 7], // tríada mayor
   1: [0, 4, 7, 10], // séptima de dominante
@@ -59,7 +50,6 @@ export class Harmony {
   }
 }
 
-/** MIDI → nombre de nota ("C4", "F#3"). */
 export function midiToNote(midi: number): string {
   const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const octave = Math.floor(midi / 12) - 1;

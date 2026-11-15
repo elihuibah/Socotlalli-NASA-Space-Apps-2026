@@ -50,11 +50,13 @@ export class AudioEngine implements AudioEngineApi {
     this.lastFrame = -1;
 
     this.ensureEffects();
-    this.effects!.distortion.wet.value = 0; // evita que la distorsión de CO₂ se quede en otros discos
+    this.effects!.distortion.wet.value = 0;
     this.instrument?.dispose();
     const preset = presetFor(disc.id);
-    this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
-    this.instrument = new Instrument(preset, this.effects!.input);
+    this.harmony.setRoot(12 * (preset.baseOctave + 1));
+    // Con grabaciones: salida directa, sin efectos.
+    const destination = preset.samples ? Tone.getDestination() : this.effects!.input;
+    this.instrument = new Instrument(preset, destination);
   }
 
   async play(): Promise<void> {
@@ -163,20 +165,23 @@ export class AudioEngine implements AudioEngineApi {
     const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
       useLatLon: this.mode === "scan",
     });
-    const notes = this.harmony.chord(params.midi, params.tension).map(midiToNote);
+    if (this.instrument.isRaw) {
+      // Tus grabaciones tal cual: la celda decide cuál suena.
+      const picks = this.instrument.pick(sample.value, params.tension);
+      this.instrument.playRecordings(picks, time, params.velocity);
+    } else {
+      const notes = this.harmony.chord(params.midi, params.tension).map(midiToNote);
+      this.effects.setBrightness(params.brightness, time);
+      this.effects.setPan(params.pan, time);
 
-    this.effects.setBrightness(params.brightness, time);
-    this.effects.setPan(params.pan, time);
-
-    // Distorsión proporcional a la anomalía (solo presets con maxDistortion, p. ej. CO₂).
-    const maxDist = this.instrument.preset.maxDistortion ?? 0;
-    if (maxDist > 0) {
-      const amount = Math.min(1, Math.abs(sample.anomaly)) * maxDist;
-      this.effects.distortion.distortion = amount;
-      this.effects.distortion.wet.setValueAtTime(amount > 0.05 ? 1 : 0, time);
+      const maxDist = this.instrument.preset.maxDistortion ?? 0;
+      if (maxDist > 0) {
+        const amount = Math.min(1, Math.abs(sample.anomaly)) * maxDist;
+        this.effects.distortion.distortion = amount;
+        this.effects.distortion.wet.setValueAtTime(amount > 0.05 ? 1 : 0, time);
+      }
+      this.instrument.play(notes, params.subdivision, time, params.velocity);
     }
-
-    this.instrument.play(notes, params.subdivision, time, params.velocity);
 
     const event: NoteEvent = {
       note: midiToNote(params.midi),
