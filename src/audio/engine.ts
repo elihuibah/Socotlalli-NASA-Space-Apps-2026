@@ -168,7 +168,9 @@ export class AudioEngine implements AudioEngineApi {
     if (!this.effects) this.effects = new EffectsChain();
     this.instrument?.dispose();
     this.harmony.setRoot(12 * (preset.baseOctave + 1)); // C de la octava base
-    this.instrument = new Instrument(preset, this.effects.input);
+    // Con grabaciones: salida directa, sin distorsión, filtro, paneo ni reverb.
+    const destination = preset.samples ? Tone.getDestination() : this.effects.input;
+    this.instrument = new Instrument(preset, destination);
   }
 
   private activeMode(): ListeningMode | null {
@@ -199,14 +201,19 @@ export class AudioEngine implements AudioEngineApi {
     const params = mapCell(sample, this.disc, this.harmony, this.calibration, {
       useLatLon: this.mode === "scan",
     });
-    const chord = this.harmony.chord(params.midi, params.tension);
-
-    // Nivel 3: distorsión solo en tensión máxima y solo en los timbres que la piden.
-    const maxDist = this.instrument.preset.maxDistortion ?? 0;
-    this.effects.setDistortion(params.tension === 3 ? maxDist * Math.abs(sample.anomaly) : 0, time);
-    this.effects.setBrightness(params.brightness, time);
-    this.effects.setPan(params.pan, time);
-    this.instrument.play(chord, params.subdivision, time, params.velocity, sample.layer);
+    if (this.instrument.isRaw) {
+      // Tus grabaciones tal cual: la celda decide cuál suena.
+      const picks = this.instrument.pick(sample.value, params.tension);
+      this.instrument.playRecordings(picks, time, params.velocity);
+    } else {
+      const chord = this.harmony.chord(params.midi, params.tension);
+      // Nivel 3: distorsión solo en tensión máxima y solo en los timbres que la piden.
+      const maxDist = this.instrument.preset.maxDistortion ?? 0;
+      this.effects.setDistortion(params.tension === 3 ? maxDist * Math.abs(sample.anomaly) : 0, time);
+      this.effects.setBrightness(params.brightness, time);
+      this.effects.setPan(params.pan, time);
+      this.instrument.play(chord, params.subdivision, time, params.velocity, sample.layer);
+    }
 
     const event: NoteEvent = {
       note: midiToNote(params.midi),

@@ -1,10 +1,4 @@
-/**
- * Leyenda sonora ("cómo se escucha"): ejemplos cortos que explican el mapeo
- * de oído, para personas ciegas o con baja visión.
- *
- * Cada entrada lleva el texto para el lector de pantalla y una función
- * que toca el ejemplo con el instrumento del disco activo.
- */
+
 import type { EffectsChain } from "./effects";
 import type { Harmony } from "./harmony";
 import type { Instrument } from "./instruments";
