@@ -184,6 +184,10 @@ export interface InstrumentPreset {
   layers?: Record<string, { oscillator: InstrumentPreset["oscillator"]; octaveShift: number }>;
   /** Muestras de public/samples para Tone.Sampler (nivel 3). */
   samples?: { baseUrl: string; urls: Record<string, string> };
+  /** Instrumentos sintetizados extra que suenan solo en los picos de emoción (se turnan si hay varios). */
+  peak?: ("waterphone" | "handpan" | "steeldrum")[];
+  /** Steel drum que dobla cada nota grabada a lo largo de toda la canción (mismas notas que suenan). */
+  accompany?: "steeldrum";
   /** Octava base del registro. */
   baseOctave: number;
 }
