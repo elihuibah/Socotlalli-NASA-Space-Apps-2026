@@ -2,15 +2,23 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/socotlalli-favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Socotlalli</title>
     <!-- La fuente se pide antes que nada para que el texto aparezca ya con su tipografía -->
-    <link rel="preload" href="/src/assets/fonts/urbanist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="/src/assets/fonts/urbanist-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <!-- Mientras llega la app, la página ya tiene el color del telón de entrada (styles/telon.css) -->
     <style>
       html,
-      body:has(#root:empty) { background: #2a1e27; }
+      body:has(#root:empty) {
+        background: #2a1e27;
+      }
     </style>
   </head>
   <body>
