@@ -318,7 +318,7 @@ export default function App() {
         const f = c?.frames[next]
         if (c && f && Math.abs(f.anomaly) > 0.7 && !tenseSaid.current.has(c.id)) {
           tenseSaid.current.add(c.id)
-          say(tx('¿Oyes cómo se tensa la armonía? Ahí me alejé de lo normal.', 'Hear how the harmony gets tense? That’s where I drifted away from normal.'))
+          say(tx('Acá, la armonía se tensa, ¿te fijaste? Ahí me alejé de lo normal.', 'Hear how the harmony gets tense? That’s where I drifted away from normal.'))
         }
       }),
     [say],
