@@ -5,6 +5,7 @@ export interface Settings {
   reduceMotion: boolean
   largeText: boolean
   lang: Lang
+  volume: number
 }
 
 const KEY = 'socotlalli:ajustes'
@@ -16,7 +17,7 @@ function load(): Settings {
   } catch {
     // Sin matchMedia: se asume movimiento completo.
   }
-  const base: Settings = { reduceMotion: system, largeText: false, lang: 'es' }
+  const base: Settings = { reduceMotion: system, largeText: false, lang: 'es', volume: 1 }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) return { ...base, ...(JSON.parse(raw) as Partial<Settings>) }

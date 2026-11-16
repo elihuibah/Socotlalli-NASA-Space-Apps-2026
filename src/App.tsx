@@ -64,6 +64,10 @@ const VIGA = 'M34 900 V210 Q34 52 220 34 H1220 Q1406 52 1406 210 V900'
 export default function App() {
   const [settings, setSetting] = useSettings()
   const lang = settings.lang
+
+  useEffect(() => {
+    audio.setVolume(settings.volume)
+  }, [settings.volume])
   const t = (es: string, en: string) => pick(lang, es, en)
   const [messages, setMessages] = useState<Message[]>([{ id: 0, text: INTRO[0] }])
   const [guide, setGuide] = useState<Guide>({ kind: 'intro', index: 0 })
@@ -454,6 +458,18 @@ export default function App() {
           <label>
             <input type="checkbox" checked={settings.largeText} onChange={(e) => setSetting('largeText', e.target.checked)} />
             {t('Texto más grande', 'Larger text')}
+          </label>
+          <label className="a11y-volumen">
+            {t('Volumen', 'Volume')}
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(settings.volume * 100)}
+              aria-valuetext={`${Math.round(settings.volume * 100)}%`}
+              onChange={(e) => setSetting('volume', Number(e.target.value) / 100)}
+            />
           </label>
           <p>
             {t(

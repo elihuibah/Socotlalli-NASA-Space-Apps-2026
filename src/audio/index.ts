@@ -10,6 +10,7 @@
  *   setRegion(col, row)
  *   onNote(callback)  // devuelve una función para desuscribirse
  */
+import * as Tone from "tone";
 import type { Calibration } from "./calibration";
 import { AudioEngine } from "./engine";
 import type { Disc, FrameCallback, Mode, NoteCallback } from "./types";
@@ -31,6 +32,13 @@ export const isPlaying = (): boolean => engine.isPlaying();
 export const onFrame = (callback: FrameCallback): (() => void) => engine.onFrame(callback);
 export const playLegend = (id: string): Promise<void> => engine.playLegend(id);
 export const getCalibration = (): Calibration => engine.getCalibration();
+/** Volumen general de 0 a 1 (0 silencia). */
+export const setVolume = (level: number): void => {
+  const v = Math.max(0, Math.min(1, level));
+  const dest = Tone.getDestination();
+  dest.mute = v === 0;
+  if (v > 0) dest.volume.rampTo(20 * Math.log10(v), 0.05);
+};
 export { LEGEND } from "./legend";
 export type { Calibration } from "./calibration";
 
