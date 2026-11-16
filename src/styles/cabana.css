@@ -324,6 +324,11 @@
   margin: 0;
   accent-color: var(--musgo);
 }
+.a11y-panel .a11y-volumen input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
 .a11y-panel p {
   font-size: 0.875rem;
   padding-top: 6px;
